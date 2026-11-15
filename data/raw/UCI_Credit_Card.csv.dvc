@@ -1,0 +1,13 @@
+md5: 4088d9ab3c41109ecb630da200112ff7
+frozen: true
+deps:
+- checksum: '"940b416bb13a9b24bb5c9e1589284005"'
+  size: 2862995
+  hash: md5
+  path: 
+    https://skillfactory-kochkin.hb.ru-msk.vkcloud-storage.ru/UCI_Credit_Card.csv
+outs:
+- md5: 940b416bb13a9b24bb5c9e1589284005
+  size: 2862995
+  hash: md5
+  path: UCI_Credit_Card.csv

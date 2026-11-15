@@ -1,0 +1,15 @@
+__pycache__/
+.pytest_cache/
+.ipynb_checkpoints/
+.venv/
+.idea/
+mlflow.db
+mlruns/
+reports/drift_report.json
+/data/raw/UCI_Credit_Card.csv
+/data/processed/train.csv
+/data/processed/test.csv
+/models/credit_default_model.pkl
+/.dvc/config.local
+/.dvc/tmp
+/.dvc/cache

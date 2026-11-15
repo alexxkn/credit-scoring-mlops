@@ -1,0 +1,50 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  lint:
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install linters
+        run: pip install $(grep -E '^(flake8|black)==' requirements-dev.txt)
+
+      - name: Lint with flake8
+        run: flake8 src tests
+
+      - name: Check formatting with black
+        run: black --check src tests
+
+  test:
+    if: github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt -r requirements-dev.txt
+
+      - name: Download data
+        run: dvc update data/raw/UCI_Credit_Card.csv.dvc
+
+      - name: Validate data with Great Expectations
+        run: python -m src.data.validation data/raw/UCI_Credit_Card.csv
+
+      - name: Run unit tests
+        run: pytest

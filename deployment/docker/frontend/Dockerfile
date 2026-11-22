@@ -9,6 +9,9 @@ COPY src src
 RUN npm run build
 
 FROM docker.io/nginxinc/nginx-unprivileged:1.29-alpine AS runtime
+# Пакеты Alpine обновляются при сборке: исправления уязвимостей выходят раньше нового базового образа
+USER root
+RUN apk upgrade --no-cache
 ENV API_UPSTREAM=http://credit-scoring-api:8000
 COPY nginx.conf.template /etc/nginx/templates/default.conf.template
 COPY --from=build /build/dist /usr/share/nginx/html

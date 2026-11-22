@@ -8,8 +8,8 @@ server {
 
     # Запросы к API идут через тот же адрес, что и страница, поэтому CORS не нужен
     location /api/ {
+        # Host остаётся именем сервиса API: по нему sidecar Istio находит маршрут, в том числе canary
         proxy_pass ${API_UPSTREAM}/;
-        proxy_set_header Host $host;
         proxy_set_header X-Request-Id $request_id;
     }
 

@@ -1,0 +1,43 @@
+# Airflow 3 с KubernetesExecutor: каждая задача — отдельный под, Celery и Redis не нужны. Метаданные в managed PostgreSQL
+executor: KubernetesExecutor
+nodeSelector:
+  node-role.credit-scoring/pool: system
+data:
+  metadataSecretName: airflow-metadata
+postgresql:
+  enabled: false
+redis:
+  enabled: false
+statsd:
+  enabled: false
+triggerer:
+  persistence:
+    enabled: false
+workers:
+  persistence:
+    enabled: false
+dags:
+  gitSync:
+    enabled: true
+    repo: https://github.com/alexxkn/credit-scoring-mlops.git
+    branch: main
+    subPath: airflow/dags
+    period: 60s
+env:
+  - name: AIRFLOW_VAR_TRAINER_IMAGE
+    value: ghcr.io/alexxkn/credit-scoring-mlops/trainer:latest
+  - name: AIRFLOW_VAR_MODELS_BUCKET
+    value: mifirobo-prod-models
+  - name: AIRFLOW_VAR_REPORTS_BUCKET
+    value: mifirobo-prod-reports
+  - name: AIRFLOW_VAR_REDIS_URL
+    value: redis://redis.credit-scoring-prod.svc:6379/0
+  - name: AIRFLOW_VAR_MLFLOW_TRACKING_URI
+    value: http://mlflow.mlops.svc:5000
+  - name: AIRFLOW_VAR_PROD_NAMESPACE
+    value: credit-scoring-prod
+  - name: S3_ENDPOINT_URL
+    value: https://hb.ru-msk.vkcloud-storage.ru
+extraEnvFrom: |
+  - secretRef:
+      name: mlops-s3

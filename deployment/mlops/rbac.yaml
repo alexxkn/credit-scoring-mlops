@@ -1,0 +1,28 @@
+# Задача deploy_canary DAG переобучения меняет версию модели у Deployment в production, дальше canary ведёт Flagger
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: model-deployer
+  namespace: credit-scoring-prod
+rules:
+  - apiGroups: [apps]
+    resources: [deployments]
+    resourceNames: [credit-scoring-api]
+    verbs: [get, patch]
+  - apiGroups: [flagger.app]
+    resources: [canaries]
+    verbs: [get, list, watch]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: airflow-model-deployer
+  namespace: credit-scoring-prod
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: model-deployer
+subjects:
+  - kind: ServiceAccount
+    name: airflow-worker
+    namespace: mlops

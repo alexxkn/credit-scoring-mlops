@@ -1,0 +1,70 @@
+# MLflow Tracking Server и реестр моделей: метаданные в managed PostgreSQL, артефакты в S3 (бакет mifirobo-prod-mlflow)
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mlflow
+  labels:
+    app: mlflow
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mlflow
+  template:
+    metadata:
+      labels:
+        app: mlflow
+    spec:
+      automountServiceAccountToken: false
+      nodeSelector:
+        node-role.credit-scoring/pool: system
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+      containers:
+        - name: mlflow
+          image: ghcr.io/alexxkn/credit-scoring-mlops/mlflow:latest
+          args:
+            - --backend-store-uri=$(MLFLOW_BACKEND_URI)
+            - --artifacts-destination=s3://mifirobo-prod-mlflow/artifacts
+            - --serve-artifacts
+            - --allowed-hosts=mlflow,mlflow.mlops,mlflow.mlops.svc,mlflow.mlops.svc.cluster.local,localhost:5000,127.0.0.1:5000
+          env:
+            - name: MLFLOW_S3_ENDPOINT_URL
+              value: https://hb.ru-msk.vkcloud-storage.ru
+          envFrom:
+            - secretRef:
+                name: mlflow
+          ports:
+            - name: http
+              containerPort: 5000
+          resources:
+            requests: {cpu: 100m, memory: 512Mi}
+            limits: {memory: 1Gi}
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: [ALL]
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: tmp
+          emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mlflow
+spec:
+  selector:
+    app: mlflow
+  ports:
+    - name: http
+      port: 5000
+      targetPort: http

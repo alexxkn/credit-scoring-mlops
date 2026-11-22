@@ -13,7 +13,7 @@ variable "kubernetes_version" {
 
 variable "master_flavor" {
   type    = string
-  default = "STD3-2-8"
+  default = "STD3-4-12"
 }
 
 variable "master_zone" {

@@ -35,6 +35,14 @@ resource "helm_release" "kube_prometheus_stack" {
   })]
 }
 
+resource "kubernetes_config_map_v1" "loki_rules" {
+  metadata {
+    name      = "loki-rules"
+    namespace = var.namespace
+  }
+  data = { "credit-scoring.yaml" = file("${path.module}/values/loki-rules.yaml") }
+}
+
 resource "helm_release" "loki" {
   name       = "loki"
   repository = "https://grafana.github.io/helm-charts"
@@ -50,10 +58,9 @@ resource "helm_release" "loki" {
     s3_endpoint          = var.s3_endpoint
     s3_access_key        = var.s3_access_key
     s3_secret_key        = var.s3_secret_key
-    log_rules            = file("${path.module}/values/loki-rules.yaml")
   })]
 
-  depends_on = [helm_release.kube_prometheus_stack]
+  depends_on = [helm_release.kube_prometheus_stack, kubernetes_config_map_v1.loki_rules]
 }
 
 resource "helm_release" "alloy" {

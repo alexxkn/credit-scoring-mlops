@@ -36,6 +36,11 @@ resource "vkcs_kubernetes_cluster_v2" "this" {
   # Пустой список открывает API всем; для production сюда кладут адреса офиса и раннеров CI
   loadbalancer_allowed_cidrs = var.api_allowed_cidrs
   labels                     = { environment = var.environment }
+
+  lifecycle {
+    # VK Cloud сам увеличивает мастер под нагрузку кластера; возврат к исходному размеру пересоздаёт control plane
+    ignore_changes = [master_flavor]
+  }
 }
 
 # CPU-группы узлов. Кластер standard живёт в одной зоне, узлы тоже; несколько зон даёт только regional-кластер с тремя мастерами

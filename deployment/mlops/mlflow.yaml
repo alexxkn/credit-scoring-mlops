@@ -28,6 +28,8 @@ spec:
             - --backend-store-uri=$(MLFLOW_BACKEND_URI)
             - --artifacts-destination=s3://mifirobo-prod-mlflow/artifacts
             - --serve-artifacts
+            # По умолчанию 4 воркера, каждый около 300 МБ; для учебной нагрузки хватает двух
+            - --workers=2
             - --allowed-hosts=mlflow,mlflow.mlops,mlflow.mlops.svc,mlflow.mlops.svc.cluster.local,localhost:5000,127.0.0.1:5000
           env:
             - name: MLFLOW_S3_ENDPOINT_URL
@@ -40,7 +42,7 @@ spec:
               containerPort: 5000
           resources:
             requests: {cpu: 100m, memory: 512Mi}
-            limits: {memory: 1Gi}
+            limits: {memory: 1536Mi}
           readinessProbe:
             httpGet:
               path: /health

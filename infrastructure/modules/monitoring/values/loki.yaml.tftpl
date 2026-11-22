@@ -55,12 +55,15 @@ singleBinary:
   resources:
     requests: {cpu: 200m, memory: 512Mi}
     limits: {memory: 2Gi}
+  # Правила алертов по логам: ConfigMap loki-rules монтируется в каталог тенанта fake (auth выключен)
+  extraVolumes:
+    - name: rules
+      configMap:
+        name: loki-rules
+  extraVolumeMounts:
+    - name: rules
+      mountPath: /etc/loki/rules/fake
 
-ruler:
-  directories:
-    fake:
-      credit-scoring.yaml: |
-        ${indent(8, log_rules)}
 
 gateway:
   nodeSelector: ${system_node_selector}

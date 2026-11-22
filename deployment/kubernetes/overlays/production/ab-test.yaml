@@ -1,0 +1,126 @@
+# A/B-тест версий модели: вариант B — отдельный Deployment с другой моделью из S3 (MODEL_URI).
+# Заголовок x-model-variant закрепляет вариант за клиентом, без заголовка трафик делится 50/50.
+# Итоги сравниваются по credit_predictions_total{model_version} и ROC-AUC по ответам /feedback (дашборд дрифта)
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: credit-scoring-api-b
+  labels:
+    app: credit-scoring-api-b
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: credit-scoring-api-b
+  template:
+    metadata:
+      labels:
+        app: credit-scoring-api-b
+        version: b
+    spec:
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+      nodeSelector:
+        node-role.credit-scoring/pool: app
+      containers:
+        - name: api
+          image: ghcr.io/alexxkn/credit-scoring-mlops/backend:latest
+          ports:
+            - name: http
+              containerPort: 8000
+          envFrom:
+            - configMapRef:
+                name: credit-scoring-config
+            - secretRef:
+                name: credit-scoring-secrets
+          env:
+            - name: MODEL_URI
+              valueFrom:
+                configMapKeyRef:
+                  name: ab-test
+                  key: MODEL_URI_B
+            - name: MODEL_VERSION
+              valueFrom:
+                configMapKeyRef:
+                  name: ab-test
+                  key: MODEL_VERSION_B
+          resources:
+            requests: {cpu: 250m, memory: 384Mi}
+            limits: {cpu: "1", memory: 512Mi}
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: http
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: [ALL]
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: tmp
+          emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: credit-scoring-api-b
+spec:
+  selector:
+    app: credit-scoring-api-b
+  ports:
+    - name: http
+      port: 8000
+      targetPort: http
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ab-test
+data:
+  MODEL_URI_B: s3://mifirobo-prod-models/nn-v1-int8
+  MODEL_VERSION_B: nn-v1-int8
+---
+apiVersion: networking.istio.io/v1
+kind: VirtualService
+metadata:
+  name: credit-scoring-ab
+spec:
+  gateways:
+    - istio-ingress/public-gateway
+  hosts:
+    - ab.INGRESS_HOST
+  http:
+    - match:
+        - headers:
+            x-model-variant:
+              exact: b
+      route:
+        - destination:
+            host: credit-scoring-api-b
+            port:
+              number: 8000
+    - match:
+        - headers:
+            x-model-variant:
+              exact: a
+      route:
+        - destination:
+            host: credit-scoring-api-primary
+            port:
+              number: 8000
+    - route:
+        - destination:
+            host: credit-scoring-api-primary
+            port:
+              number: 8000
+          weight: 50
+        - destination:
+            host: credit-scoring-api-b
+            port:
+              number: 8000
+          weight: 50

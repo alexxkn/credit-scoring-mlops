@@ -1,0 +1,4 @@
+meshProvider: istio
+metricsServer: http://kube-prometheus-stack-prometheus.monitoring:9090
+serviceMonitor:
+  enabled: true

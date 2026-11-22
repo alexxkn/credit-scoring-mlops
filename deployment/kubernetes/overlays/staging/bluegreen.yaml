@@ -1,0 +1,63 @@
+# Blue-Green: новая версия (green) поднимается рядом со старой (blue) и не получает пользовательский трафик.
+# Первые итерации Istio зеркалирует на неё копию запросов (shadow): ответы green выбрасываются, но метрики снимаются.
+# После всех проверок Flagger переключает 100% трафика разом, при провале green удаляется, blue остаётся
+apiVersion: flagger.app/v1beta1
+kind: Canary
+metadata:
+  name: credit-scoring-api
+spec:
+  targetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: credit-scoring-api
+  autoscalerRef:
+    apiVersion: autoscaling/v2
+    kind: HorizontalPodAutoscaler
+    name: credit-scoring-api
+  progressDeadlineSeconds: 600
+  service:
+    port: 8000
+    targetPort: http
+    gateways:
+      - istio-ingress/public-gateway
+      - mesh
+    hosts:
+      - api.staging.INGRESS_HOST
+      - credit-scoring-api
+  analysis:
+    interval: 30s
+    threshold: 2
+    iterations: 6
+    mirror: true
+    mirrorWeight: 100
+    metrics:
+      - name: request-success-rate
+        thresholdRange:
+          min: 99
+        interval: 1m
+      - name: api-error-rate
+        templateRef:
+          name: api-error-rate
+        thresholdRange:
+          max: 1
+        interval: 1m
+    webhooks:
+      # Ручной откат: workflow rollback открывает этот шлюз в loadtester, и Flagger прерывает выкатку
+      - name: manual-rollback
+        type: rollback
+        url: http://flagger-loadtester.credit-scoring-staging/rollback/check
+      - name: acceptance-test
+        type: pre-rollout
+        url: http://flagger-loadtester.credit-scoring-staging/
+        timeout: 30s
+        metadata:
+          type: bash
+          cmd: curl -sf http://credit-scoring-api-canary.credit-scoring-staging:8000/ready | grep -q ready
+      - name: load-test
+        type: rollout
+        url: http://flagger-loadtester.credit-scoring-staging/
+        metadata:
+          cmd: >-
+            hey -z 30s -q 5 -c 2 -m POST -T application/json
+            -d '{"LIMIT_BAL":50000,"SEX":2,"EDUCATION":2,"MARRIAGE":1,"AGE":30,"PAY_0":2,"PAY_2":2,"PAY_3":0,"PAY_4":0,"PAY_5":0,"PAY_6":0,"BILL_AMT1":48000,"BILL_AMT2":47000,"BILL_AMT3":46000,"BILL_AMT4":45000,"BILL_AMT5":44000,"BILL_AMT6":43000,"PAY_AMT1":0,"PAY_AMT2":1500,"PAY_AMT3":1500,"PAY_AMT4":1500,"PAY_AMT5":1500,"PAY_AMT6":1500}'
+            http://credit-scoring-api.credit-scoring-staging:8000/predict

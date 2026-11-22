@@ -1,0 +1,15 @@
+# PodMonitor, а не ServiceMonitor: Flagger создаёт свои Service (-primary, -canary), а поды API в любом случае несут контейнер api
+apiVersion: monitoring.coreos.com/v1
+kind: PodMonitor
+metadata:
+  name: credit-scoring-api
+spec:
+  selector:
+    matchExpressions:
+      - key: app
+        operator: In
+        values: [credit-scoring-api, credit-scoring-api-primary, credit-scoring-api-b]
+  podMetricsEndpoints:
+    - port: http
+      path: /metrics
+      interval: 15s

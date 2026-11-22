@@ -1,0 +1,79 @@
+# Canary-релиз: Flagger переводит на новую версию 10% → 20% → … → 50% трафика, на каждом шаге проверяет метрики
+# и при провале двух проверок подряд возвращает весь трафик на primary
+apiVersion: flagger.app/v1beta1
+kind: Canary
+metadata:
+  name: credit-scoring-api
+spec:
+  targetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: credit-scoring-api
+  autoscalerRef:
+    apiVersion: autoscaling/v2
+    kind: HorizontalPodAutoscaler
+    name: credit-scoring-api
+  progressDeadlineSeconds: 600
+  service:
+    port: 8000
+    targetPort: http
+    gateways:
+      - istio-ingress/public-gateway
+      - mesh
+    hosts:
+      - api.INGRESS_HOST
+      - credit-scoring-api
+    retries:
+      attempts: 2
+      perTryTimeout: 2s
+      retryOn: gateway-error,connect-failure,refused-stream
+  analysis:
+    interval: 1m
+    threshold: 2
+    maxWeight: 50
+    stepWeight: 10
+    metrics:
+      - name: request-success-rate
+        thresholdRange:
+          min: 99
+        interval: 1m
+      - name: request-duration
+        thresholdRange:
+          max: 300
+        interval: 1m
+      - name: api-error-rate
+        templateRef:
+          name: api-error-rate
+        thresholdRange:
+          max: 1
+        interval: 1m
+      - name: default-rate
+        templateRef:
+          name: default-rate
+        thresholdRange:
+          min: 0.05
+          max: 0.6
+        interval: 2m
+    webhooks:
+      # Ручной откат: workflow rollback открывает этот шлюз в loadtester, и Flagger прерывает выкатку
+      - name: manual-rollback
+        type: rollback
+        url: http://flagger-loadtester.credit-scoring-prod/rollback/check
+      - name: acceptance-test
+        type: pre-rollout
+        url: http://flagger-loadtester.credit-scoring-prod/
+        timeout: 30s
+        metadata:
+          type: bash
+          cmd: >-
+            curl -sf -X POST -H 'Content-Type: application/json' -d @/dev/stdin http://credit-scoring-api-canary.credit-scoring-prod:8000/predict
+            <<< '{"LIMIT_BAL":50000,"SEX":2,"EDUCATION":2,"MARRIAGE":1,"AGE":30,"PAY_0":2,"PAY_2":2,"PAY_3":0,"PAY_4":0,"PAY_5":0,"PAY_6":0,"BILL_AMT1":48000,"BILL_AMT2":47000,"BILL_AMT3":46000,"BILL_AMT4":45000,"BILL_AMT5":44000,"BILL_AMT6":43000,"PAY_AMT1":0,"PAY_AMT2":1500,"PAY_AMT3":1500,"PAY_AMT4":1500,"PAY_AMT5":1500,"PAY_AMT6":1500}'
+            | grep -q default_probability
+      - name: load-test
+        type: rollout
+        url: http://flagger-loadtester.credit-scoring-prod/
+        metadata:
+          cmd: >-
+            hey -z 1m -q 10 -c 4 -m POST -T application/json
+            -d '{"LIMIT_BAL":120000,"SEX":1,"EDUCATION":1,"MARRIAGE":2,"AGE":41,"PAY_0":0,"PAY_2":0,"PAY_3":0,"PAY_4":0,"PAY_5":0,"PAY_6":0,"BILL_AMT1":3000,"BILL_AMT2":2800,"BILL_AMT3":2500,"BILL_AMT4":2000,"BILL_AMT5":1800,"BILL_AMT6":1500,"PAY_AMT1":3000,"PAY_AMT2":2800,"PAY_AMT3":2500,"PAY_AMT4":2000,"PAY_AMT5":1800,"PAY_AMT6":1500}'
+            http://credit-scoring-api-canary.credit-scoring-prod:8000/predict

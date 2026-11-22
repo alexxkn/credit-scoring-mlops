@@ -1,0 +1,7 @@
+service:
+  type: LoadBalancer
+resources:
+  requests: {cpu: 100m, memory: 128Mi}
+autoscaling:
+  minReplicas: 2
+  maxReplicas: 4

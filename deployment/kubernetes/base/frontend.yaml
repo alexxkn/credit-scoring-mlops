@@ -1,0 +1,75 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: credit-scoring-frontend
+  labels:
+    app: credit-scoring-frontend
+spec:
+  replicas: 2
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  selector:
+    matchLabels:
+      app: credit-scoring-frontend
+  template:
+    metadata:
+      labels:
+        app: credit-scoring-frontend
+    spec:
+      automountServiceAccountToken: false
+      nodeSelector:
+        node-role.credit-scoring/pool: app
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 101
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: frontend
+          image: ghcr.io/alexxkn/credit-scoring-mlops/frontend:latest
+          env:
+            - name: API_UPSTREAM
+              value: http://credit-scoring-api:8000
+          ports:
+            - name: http
+              containerPort: 8080
+          resources:
+            requests: {cpu: 20m, memory: 32Mi}
+            limits: {memory: 64Mi}
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: [ALL]
+          # nginx пишет конфиг из шаблона и временные файлы, остальная ФС только для чтения
+          volumeMounts:
+            - name: conf
+              mountPath: /etc/nginx/conf.d
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: conf
+          emptyDir: {}
+        - name: tmp
+          emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: credit-scoring-frontend
+  labels:
+    app: credit-scoring-frontend
+spec:
+  selector:
+    app: credit-scoring-frontend
+  ports:
+    - name: http
+      port: 80
+      targetPort: http

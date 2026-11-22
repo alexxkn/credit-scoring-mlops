@@ -1,0 +1,15 @@
+apiVersion: networking.istio.io/v1
+kind: VirtualService
+metadata:
+  name: credit-scoring-frontend
+spec:
+  gateways:
+    - istio-ingress/public-gateway
+  hosts:
+    - app.INGRESS_HOST
+  http:
+    - route:
+        - destination:
+            host: credit-scoring-frontend
+            port:
+              number: 80

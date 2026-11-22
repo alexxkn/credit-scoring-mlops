@@ -1,0 +1,7 @@
+pilot:
+  resources:
+    requests: {cpu: 100m, memory: 256Mi}
+meshConfig:
+  # Access-логи Envoy в stdout, их забирает Alloy в Loki
+  accessLogFile: /dev/stdout
+  accessLogEncoding: JSON

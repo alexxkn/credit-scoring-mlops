@@ -1,0 +1,14 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - configmap.yaml
+  - api-deployment.yaml
+  - api-service.yaml
+  - api-hpa.yaml
+  - api-pdb.yaml
+  - api-podmonitor.yaml
+  - frontend.yaml
+  - redis.yaml
+  - networkpolicy.yaml
+  - drift-cronjob.yaml
+  - flagger-metrics.yaml

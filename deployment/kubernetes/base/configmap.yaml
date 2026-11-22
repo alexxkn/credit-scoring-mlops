@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: credit-scoring-config
+data:
+  LOG_LEVEL: INFO
+  ORT_THREADS: "1"
+  REDIS_URL: redis://redis:6379/0
+  CACHE_TTL_SECONDS: "3600"
+  PREDICTION_STREAM: predictions
+  S3_ENDPOINT_URL: https://hb.ru-msk.vkcloud-storage.ru
+  # Пустой MODEL_URI: модель из образа. s3://bucket/версия подменяет модель без пересборки
+  MODEL_URI: ""
+  MODEL_VERSION: baked

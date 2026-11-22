@@ -1,0 +1,42 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: credit-scoring-staging
+resources:
+  - ../../base
+  - bluegreen.yaml
+  - ingress.yaml
+patches:
+  - target:
+      kind: HorizontalPodAutoscaler
+      name: credit-scoring-api
+    patch: |-
+      - op: replace
+        path: /spec/minReplicas
+        value: 1
+      - op: replace
+        path: /spec/maxReplicas
+        value: 2
+  - target:
+      kind: Deployment
+      name: credit-scoring-frontend
+    patch: |-
+      - op: replace
+        path: /spec/replicas
+        value: 1
+  # Дрифт считается только в production: в staging нет реального трафика
+  - target:
+      kind: CronJob
+      name: drift-monitor
+    patch: |-
+      $patch: delete
+      apiVersion: batch/v1
+      kind: CronJob
+      metadata:
+        name: drift-monitor
+images:
+  - name: ghcr.io/alexxkn/credit-scoring-mlops/backend
+    newTag: latest
+  - name: ghcr.io/alexxkn/credit-scoring-mlops/frontend
+    newTag: latest
+  - name: ghcr.io/alexxkn/credit-scoring-mlops/drift
+    newTag: latest

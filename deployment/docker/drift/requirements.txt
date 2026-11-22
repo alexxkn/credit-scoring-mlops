@@ -1,0 +1,8 @@
+boto3==1.44.9
+evidently==0.7.23
+numpy==2.5.5
+onnxruntime==1.32.0
+pandas==2.3.3
+prometheus_client==0.26.0
+redis==8.1.0
+scikit-learn==1.9.1

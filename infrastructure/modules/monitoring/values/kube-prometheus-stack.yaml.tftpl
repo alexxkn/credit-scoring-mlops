@@ -56,6 +56,11 @@ alertmanager:
               {{ end }}
 
 grafana:
+  # Образ из зеркала в GHCR: Docker Hub из VK Cloud отдаёт большие образы слишком медленно
+  image:
+    registry: ghcr.io
+    repository: alexxkn/credit-scoring-mlops/mirror/grafana/grafana
+    tag: 13.3.1-distroless
   adminPassword: "${grafana_admin_password}"
   nodeSelector: ${system_node_selector}
   sidecar:

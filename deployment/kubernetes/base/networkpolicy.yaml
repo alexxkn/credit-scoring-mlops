@@ -31,7 +31,7 @@ spec:
               app: credit-scoring-frontend
         - podSelector:
             matchLabels:
-              app: flagger-loadtester
+              app: loadtester
       ports:
         - port: 8000
         - port: 15090
@@ -89,7 +89,7 @@ metadata:
 spec:
   podSelector:
     matchLabels:
-      app: flagger-loadtester
+      app: loadtester
   policyTypes: [Ingress]
   ingress:
     - from:

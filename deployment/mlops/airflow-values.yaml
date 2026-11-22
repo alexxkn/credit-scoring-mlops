@@ -1,5 +1,7 @@
 # Airflow 3 с KubernetesExecutor: каждая задача — отдельный под, Celery и Redis не нужны. Метаданные в managed PostgreSQL
 executor: KubernetesExecutor
+# Образ из зеркала в GHCR: из Docker Hub гигабайтный образ Airflow в VK Cloud не скачивается
+defaultAirflowRepository: ghcr.io/alexxkn/credit-scoring-mlops/mirror/apache/airflow
 nodeSelector:
   node-role.credit-scoring/pool: system
 data:

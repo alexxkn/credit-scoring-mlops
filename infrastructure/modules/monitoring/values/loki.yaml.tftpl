@@ -1,6 +1,11 @@
 # Loki в одном экземпляре (SingleBinary): для одного кластера этого достаточно, чанки хранятся в S3
 deploymentMode: SingleBinary
 loki:
+  # Образы из зеркала в GHCR, см. .github/workflows/mirror-images.yml
+  image:
+    registry: ghcr.io
+    repository: alexxkn/credit-scoring-mlops/mirror/grafana/loki
+    tag: 3.6.11
   auth_enabled: false
   commonConfig:
     replication_factor: 1
@@ -59,6 +64,10 @@ ruler:
 
 gateway:
   nodeSelector: ${system_node_selector}
+  image:
+    registry: ghcr.io
+    repository: alexxkn/credit-scoring-mlops/mirror/nginxinc/nginx-unprivileged
+    tag: 1.29-alpine
 
 read: {replicas: 0}
 write: {replicas: 0}

@@ -27,7 +27,7 @@ spec:
         fsGroup: 999
       containers:
         - name: redis
-          image: docker.io/library/redis:8-alpine
+          image: ghcr.io/alexxkn/credit-scoring-mlops/mirror/redis:8-alpine
           args: ["--appendonly", "yes", "--maxmemory", "400mb", "--maxmemory-policy", "allkeys-lru"]
           ports:
             - name: redis

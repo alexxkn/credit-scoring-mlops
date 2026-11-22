@@ -1,4 +1,4 @@
-# syntax=docker/dockerfile:1.7
+# syntax=docker/dockerfile:1
 # Образ переобучения для Airflow (KubernetesPodOperator): PyTorch только для CPU, данные DVC внутри образа
 
 FROM docker.io/library/python:3.12-slim AS deps
@@ -11,9 +11,9 @@ RUN pip install --no-cache-dir dvc==3.67.1 dvc-s3==3.3.0
 WORKDIR /repo
 COPY .dvc/config .dvc/config
 COPY dvc.yaml dvc.lock params.yaml ./
-RUN --mount=type=secret,id=aws_access_key_id,env=AWS_ACCESS_KEY_ID \
-    --mount=type=secret,id=aws_secret_access_key,env=AWS_SECRET_ACCESS_KEY \
-    dvc config core.no_scm true && dvc pull prepare
+RUN --mount=type=secret,id=aws_access_key_id --mount=type=secret,id=aws_secret_access_key \
+    export AWS_ACCESS_KEY_ID="$(cat /run/secrets/aws_access_key_id)" AWS_SECRET_ACCESS_KEY="$(cat /run/secrets/aws_secret_access_key)" \
+    && dvc config core.no_scm true && dvc pull prepare
 
 FROM docker.io/library/python:3.12-slim AS runtime
 RUN useradd --uid 10001 --create-home app

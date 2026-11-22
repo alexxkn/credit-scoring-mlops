@@ -1,4 +1,4 @@
-# syntax=docker/dockerfile:1.7
+# syntax=docker/dockerfile:1
 # MLflow Tracking Server: метаданные в managed PostgreSQL, артефакты и реестр моделей в S3
 
 FROM docker.io/library/python:3.12-slim AS deps

@@ -1,4 +1,4 @@
-# syntax=docker/dockerfile:1.7
+# syntax=docker/dockerfile:1
 # Сборка статики в node, раздача через nginx без root: в итоговом образе нет node и исходников
 
 FROM docker.io/library/node:24-alpine AS build

@@ -13,3 +13,7 @@ reports/drift_report.json
 /.dvc/config.local
 /.dvc/tmp
 /.dvc/cache
+/models/nn/model.pt
+/models/nn/model.onnx
+/models/nn/model.int8.onnx
+/models/nn/model.pruned.onnx

@@ -16,7 +16,9 @@ stages:
     cmd: python -m src.models.train
     deps:
       - src/features
-      - src/models
+      - src/models/train.py
+      - src/models/pipeline.py
+      - src/models/metrics.py
       - data/processed/train.csv
       - data/processed/test.csv
     params:
@@ -28,4 +30,50 @@ stages:
           cache: false
     plots:
       - reports/roc_curve.png:
+          cache: false
+
+  train_nn:
+    cmd: python -m src.models.train_nn
+    deps:
+      - src/features
+      - src/models/nn.py
+      - src/models/train_nn.py
+      - src/models/metrics.py
+      - data/processed/train.csv
+      - data/processed/test.csv
+    params:
+      - train_nn
+    outs:
+      - models/nn/model.pt
+    metrics:
+      - models/nn/metrics.json:
+          cache: false
+
+  convert_onnx:
+    cmd: python -m src.models.onnx_conversion
+    deps:
+      - src/models/onnx_conversion.py
+      - src/models/nn.py
+      - models/nn/model.pt
+      - data/processed/test.csv
+    outs:
+      - models/nn/model.onnx
+    metrics:
+      - models/nn/onnx_validation.json:
+          cache: false
+
+  optimize:
+    cmd: python -m src.models.optimize
+    deps:
+      - src/models/optimize.py
+      - src/models/benchmark.py
+      - models/nn/model.onnx
+      - models/nn/model.pt
+    params:
+      - optimize
+    outs:
+      - models/nn/model.int8.onnx
+      - models/nn/model.pruned.onnx
+    metrics:
+      - reports/optimization.json:
           cache: false

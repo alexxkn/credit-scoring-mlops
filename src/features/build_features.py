@@ -1,9 +1,12 @@
 import pandas as pd
 
-PAY_STATUS = ["PAY_0", "PAY_2", "PAY_3", "PAY_4", "PAY_5", "PAY_6"]
-BILL_AMT = [f"BILL_AMT{i}" for i in range(1, 7)]
-PAY_AMT = [f"PAY_AMT{i}" for i in range(1, 7)]
-INPUT_FEATURES = ["LIMIT_BAL", "SEX", "EDUCATION", "MARRIAGE", "AGE", *PAY_STATUS, *BILL_AMT, *PAY_AMT]
+import src.features.schema as schema
+
+# Список входных признаков вынесен в schema.py без pandas: его использует сервис, где pandas не нужен
+PAY_STATUS = schema.PAY_STATUS
+BILL_AMT = schema.BILL_AMT
+PAY_AMT = schema.PAY_AMT
+INPUT_FEATURES = schema.INPUT_FEATURES
 
 AGE_BINS = [0, 25, 35, 45, 55, 200]
 AGE_LABELS = ["до 25", "26-35", "36-45", "46-55", "старше 55"]

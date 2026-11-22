@@ -7,3 +7,18 @@ train:
   n_iter: 10
   random_state: 42
   n_jobs: 8
+
+train_nn:
+  hidden: [128, 64]
+  dropout: 0.2
+  lr: 0.001
+  weight_decay: 0.0001
+  batch_size: 256
+  epochs: 60
+  patience: 6
+  val_size: 0.2
+  random_state: 42
+
+optimize:
+  prune_amount: 0.5
+  finetune_epochs: 5

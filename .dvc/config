@@ -1,1 +1,6 @@
 [core]
+    remote = storage
+['remote "storage"']
+    url = s3://mifirobo/dvc
+    endpointurl = https://hb.ru-msk.vkcloud-storage.ru
+    region = ru-msk

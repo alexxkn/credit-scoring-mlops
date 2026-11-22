@@ -44,14 +44,21 @@ stages:
       size: 2782436
     - path: src/features
       hash: md5
-      md5: 56a49f63299d12fd7c4b5b006fce28dd.dir
-      size: 1411
-      nfiles: 2
-    - path: src/models
+      md5: ad108d7b83f572c24154ceb985d32f21.dir
+      size: 1735
+      nfiles: 3
+    - path: src/models/metrics.py
       hash: md5
-      md5: f0e571a6f73297b9f1c96da6e7b1f668.dir
-      size: 9451
-      nfiles: 5
+      md5: 38541a6932ffec19f1cff26bcfd85357
+      size: 962
+    - path: src/models/pipeline.py
+      hash: md5
+      md5: b6dbbbe24bb76a685e0d376971265ae3
+      size: 3096
+    - path: src/models/train.py
+      hash: md5
+      md5: 423446fbe496dc43907c5da3fb970dfa
+      size: 5091
     params:
       params.yaml:
         train:
@@ -72,3 +79,119 @@ stages:
       hash: md5
       md5: c2898720cdfb32471716f1fd502b9973
       size: 38978
+  train_nn:
+    cmd: python -m src.models.train_nn
+    deps:
+    - path: data/processed/test.csv
+      hash: md5
+      md5: 6e595bf94b90bd40cef71f3becb47e8c
+      size: 696051
+    - path: data/processed/train.csv
+      hash: md5
+      md5: ec95812930b1617536f6fb0b3284e3c7
+      size: 2782436
+    - path: src/features
+      hash: md5
+      md5: ad108d7b83f572c24154ceb985d32f21.dir
+      size: 1735
+      nfiles: 3
+    - path: src/models/metrics.py
+      hash: md5
+      md5: 38541a6932ffec19f1cff26bcfd85357
+      size: 962
+    - path: src/models/nn.py
+      hash: md5
+      md5: 1afcc87b0d58da9124a5dca2d9fcf631
+      size: 3362
+    - path: src/models/train_nn.py
+      hash: md5
+      md5: 8c0cdd5e4aebfb74dd682f98d25a266f
+      size: 4599
+    params:
+      params.yaml:
+        train_nn:
+          hidden:
+          - 128
+          - 64
+          dropout: 0.2
+          lr: 0.001
+          weight_decay: 0.0001
+          batch_size: 256
+          epochs: 60
+          patience: 6
+          val_size: 0.2
+          random_state: 42
+    outs:
+    - path: models/nn/metrics.json
+      hash: md5
+      md5: 0fbdedbb9ef3b83459baff5c2cfee070
+      size: 275
+    - path: models/nn/model.pt
+      hash: md5
+      md5: edff7c3490971146635aa10fe106471c
+      size: 58795
+  convert_onnx:
+    cmd: python -m src.models.onnx_conversion
+    deps:
+    - path: data/processed/test.csv
+      hash: md5
+      md5: 6e595bf94b90bd40cef71f3becb47e8c
+      size: 696051
+    - path: models/nn/model.pt
+      hash: md5
+      md5: edff7c3490971146635aa10fe106471c
+      size: 58795
+    - path: src/models/nn.py
+      hash: md5
+      md5: 1afcc87b0d58da9124a5dca2d9fcf631
+      size: 3362
+    - path: src/models/onnx_conversion.py
+      hash: md5
+      md5: f3a1c3b13ca851718a8822f530a097b1
+      size: 2396
+    outs:
+    - path: models/nn/model.onnx
+      hash: md5
+      md5: 1e000e992dfdb2ec70b55aa7b470a94f
+      size: 73596
+    - path: models/nn/onnx_validation.json
+      hash: md5
+      md5: 69e9708143b18a3874e0fab7713be9dc
+      size: 180
+  optimize:
+    cmd: python -m src.models.optimize
+    deps:
+    - path: models/nn/model.onnx
+      hash: md5
+      md5: 1e000e992dfdb2ec70b55aa7b470a94f
+      size: 73596
+    - path: models/nn/model.pt
+      hash: md5
+      md5: edff7c3490971146635aa10fe106471c
+      size: 58795
+    - path: src/models/benchmark.py
+      hash: md5
+      md5: 7d7eb26f656dfcc7857a2d63f1b525e0
+      size: 3664
+    - path: src/models/optimize.py
+      hash: md5
+      md5: 1e389d60aa4d60d676906ffc340ef226
+      size: 3633
+    params:
+      params.yaml:
+        optimize:
+          prune_amount: 0.5
+          finetune_epochs: 5
+    outs:
+    - path: models/nn/model.int8.onnx
+      hash: md5
+      md5: 58bdaf7be90893bc4e8273891f332484
+      size: 35844
+    - path: models/nn/model.pruned.onnx
+      hash: md5
+      md5: c60f832cb21e0813fcdc5fc91c9b3bed
+      size: 73596
+    - path: reports/optimization.json
+      hash: md5
+      md5: 11ea0ab6a992a6ca46ec3a5f3e722d7b
+      size: 692

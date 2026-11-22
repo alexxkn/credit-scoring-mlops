@@ -1,0 +1,469 @@
+{
+  "environment": {
+    "cpu": "x86_64",
+    "gpu": "NVIDIA GeForce RTX 3080 Ti",
+    "torch": "2.11.0+cu128",
+    "onnxruntime": "1.32.0"
+  },
+  "results": [
+    {
+      "device": "cpu",
+      "threads": 1,
+      "variant": "pytorch_cpu",
+      "batch": 1,
+      "p50_ms": 0.1896605026558973,
+      "p95_ms": 0.20051390092703514,
+      "rows_per_s": 5272.579087351196
+    },
+    {
+      "device": "cpu",
+      "threads": 1,
+      "variant": "pytorch_cpu",
+      "batch": 64,
+      "p50_ms": 0.22417950094677508,
+      "p95_ms": 0.23513059932156466,
+      "rows_per_s": 285485.5137499612
+    },
+    {
+      "device": "cpu",
+      "threads": 1,
+      "variant": "pytorch_cpu",
+      "batch": 1024,
+      "p50_ms": 0.6578954998985864,
+      "p95_ms": 0.7138468008633936,
+      "rows_per_s": 1556478.1947252231
+    },
+    {
+      "device": "cpu",
+      "threads": 1,
+      "variant": "onnx_fp32",
+      "batch": 1,
+      "p50_ms": 0.03949150050175376,
+      "p95_ms": 0.042245802978868596,
+      "rows_per_s": 25321.90439194863
+    },
+    {
+      "device": "cpu",
+      "threads": 1,
+      "variant": "onnx_fp32",
+      "batch": 64,
+      "p50_ms": 0.06415600000764243,
+      "p95_ms": 0.06773535278625786,
+      "rows_per_s": 997568.4268404538
+    },
+    {
+      "device": "cpu",
+      "threads": 1,
+      "variant": "onnx_fp32",
+      "batch": 1024,
+      "p50_ms": 0.43039449883508496,
+      "p95_ms": 0.467875599861145,
+      "rows_per_s": 2379212.566079679
+    },
+    {
+      "device": "cpu",
+      "threads": 1,
+      "variant": "onnx_int8",
+      "batch": 1,
+      "p50_ms": 0.03870349974022247,
+      "p95_ms": 0.042271800703019835,
+      "rows_per_s": 25837.456734196927
+    },
+    {
+      "device": "cpu",
+      "threads": 1,
+      "variant": "onnx_int8",
+      "batch": 64,
+      "p50_ms": 0.05772650183644146,
+      "p95_ms": 0.061040351647534394,
+      "rows_per_s": 1108676.2226010761
+    },
+    {
+      "device": "cpu",
+      "threads": 1,
+      "variant": "onnx_int8",
+      "batch": 1024,
+      "p50_ms": 0.32380750053562224,
+      "p95_ms": 0.3367613477166742,
+      "rows_per_s": 3162372.7007748825
+    },
+    {
+      "device": "cpu",
+      "threads": 1,
+      "variant": "onnx_pruned",
+      "batch": 1,
+      "p50_ms": 0.03794350050156936,
+      "p95_ms": 0.04005749797215685,
+      "rows_per_s": 26354.974812053504
+    },
+    {
+      "device": "cpu",
+      "threads": 1,
+      "variant": "onnx_pruned",
+      "batch": 64,
+      "p50_ms": 0.0613349984632805,
+      "p95_ms": 0.06526369543280452,
+      "rows_per_s": 1043449.9323956934
+    },
+    {
+      "device": "cpu",
+      "threads": 1,
+      "variant": "onnx_pruned",
+      "batch": 1024,
+      "p50_ms": 0.42023800051538274,
+      "p95_ms": 0.4523944036918692,
+      "rows_per_s": 2436714.430261327
+    },
+    {
+      "device": "cpu",
+      "threads": 2,
+      "variant": "pytorch_cpu",
+      "batch": 1,
+      "p50_ms": 0.190511502296431,
+      "p95_ms": 0.2059556460153544,
+      "rows_per_s": 5249.02689835507
+    },
+    {
+      "device": "cpu",
+      "threads": 2,
+      "variant": "pytorch_cpu",
+      "batch": 64,
+      "p50_ms": 0.22357199850375764,
+      "p95_ms": 0.23886879644123835,
+      "rows_per_s": 286261.25108831254
+    },
+    {
+      "device": "cpu",
+      "threads": 2,
+      "variant": "pytorch_cpu",
+      "batch": 1024,
+      "p50_ms": 0.5089265032438561,
+      "p95_ms": 0.5593011483142618,
+      "rows_per_s": 2012078.3521257143
+    },
+    {
+      "device": "cpu",
+      "threads": 2,
+      "variant": "onnx_fp32",
+      "batch": 1,
+      "p50_ms": 0.03988450043834746,
+      "p95_ms": 0.042680202386691235,
+      "rows_per_s": 25072.396269467557
+    },
+    {
+      "device": "cpu",
+      "threads": 2,
+      "variant": "onnx_fp32",
+      "batch": 64,
+      "p50_ms": 0.06898699939483777,
+      "p95_ms": 0.07450320154021028,
+      "rows_per_s": 927711.0261558797
+    },
+    {
+      "device": "cpu",
+      "threads": 2,
+      "variant": "onnx_fp32",
+      "batch": 1024,
+      "p50_ms": 0.37071399856358767,
+      "p95_ms": 0.3958762976253638,
+      "rows_per_s": 2762237.2070321366
+    },
+    {
+      "device": "cpu",
+      "threads": 2,
+      "variant": "onnx_int8",
+      "batch": 1,
+      "p50_ms": 0.04007600364275277,
+      "p95_ms": 0.04265504867362322,
+      "rows_per_s": 24952.587810756857
+    },
+    {
+      "device": "cpu",
+      "threads": 2,
+      "variant": "onnx_int8",
+      "batch": 64,
+      "p50_ms": 0.06753250272595324,
+      "p95_ms": 0.07070075298543088,
+      "rows_per_s": 947691.8138175905
+    },
+    {
+      "device": "cpu",
+      "threads": 2,
+      "variant": "onnx_int8",
+      "batch": 1024,
+      "p50_ms": 0.3219604986952618,
+      "p95_ms": 0.3363531010109,
+      "rows_per_s": 3180514.3927585487
+    },
+    {
+      "device": "cpu",
+      "threads": 2,
+      "variant": "onnx_pruned",
+      "batch": 1,
+      "p50_ms": 0.04113550312467851,
+      "p95_ms": 0.0445922945800703,
+      "rows_per_s": 24309.900792244545
+    },
+    {
+      "device": "cpu",
+      "threads": 2,
+      "variant": "onnx_pruned",
+      "batch": 64,
+      "p50_ms": 0.06907049828441814,
+      "p95_ms": 0.07351505191763863,
+      "rows_per_s": 926589.5221496902
+    },
+    {
+      "device": "cpu",
+      "threads": 2,
+      "variant": "onnx_pruned",
+      "batch": 1024,
+      "p50_ms": 0.3676409978652373,
+      "p95_ms": 0.3886316997522954,
+      "rows_per_s": 2785325.918344281
+    },
+    {
+      "device": "cpu",
+      "threads": 4,
+      "variant": "pytorch_cpu",
+      "batch": 1,
+      "p50_ms": 0.2067595014523249,
+      "p95_ms": 0.2240888032247312,
+      "rows_per_s": 4836.537102168349
+    },
+    {
+      "device": "cpu",
+      "threads": 4,
+      "variant": "pytorch_cpu",
+      "batch": 64,
+      "p50_ms": 0.26342349883634597,
+      "p95_ms": 0.2925639466411667,
+      "rows_per_s": 242954.7868079929
+    },
+    {
+      "device": "cpu",
+      "threads": 4,
+      "variant": "pytorch_cpu",
+      "batch": 1024,
+      "p50_ms": 0.5393729989009444,
+      "p95_ms": 0.5947628531430382,
+      "rows_per_s": 1898500.6703831262
+    },
+    {
+      "device": "cpu",
+      "threads": 4,
+      "variant": "onnx_fp32",
+      "batch": 1,
+      "p50_ms": 0.04165450081927702,
+      "p95_ms": 0.04361520477687009,
+      "rows_per_s": 24007.009574754436
+    },
+    {
+      "device": "cpu",
+      "threads": 4,
+      "variant": "onnx_fp32",
+      "batch": 64,
+      "p50_ms": 0.07605350037920289,
+      "p95_ms": 0.08350439893547444,
+      "rows_per_s": 841512.878183067
+    },
+    {
+      "device": "cpu",
+      "threads": 4,
+      "variant": "onnx_fp32",
+      "batch": 1024,
+      "p50_ms": 0.3515999997034669,
+      "p95_ms": 0.3813204988546204,
+      "rows_per_s": 2912400.4575188374
+    },
+    {
+      "device": "cpu",
+      "threads": 4,
+      "variant": "onnx_int8",
+      "batch": 1,
+      "p50_ms": 0.04441849887371063,
+      "p95_ms": 0.04645699409593361,
+      "rows_per_s": 22513.142617520025
+    },
+    {
+      "device": "cpu",
+      "threads": 4,
+      "variant": "onnx_int8",
+      "batch": 64,
+      "p50_ms": 0.07086700134095736,
+      "p95_ms": 0.07526544541178737,
+      "rows_per_s": 903100.1564759507
+    },
+    {
+      "device": "cpu",
+      "threads": 4,
+      "variant": "onnx_int8",
+      "batch": 1024,
+      "p50_ms": 0.3237939999962691,
+      "p95_ms": 0.34540274427854456,
+      "rows_per_s": 3162504.5554018877
+    },
+    {
+      "device": "cpu",
+      "threads": 4,
+      "variant": "onnx_pruned",
+      "batch": 1,
+      "p50_ms": 0.04519150024862029,
+      "p95_ms": 0.04737235140055418,
+      "rows_per_s": 22128.05493286385
+    },
+    {
+      "device": "cpu",
+      "threads": 4,
+      "variant": "onnx_pruned",
+      "batch": 64,
+      "p50_ms": 0.07373749758698978,
+      "p95_ms": 0.07959120339364743,
+      "rows_per_s": 867943.7476773302
+    },
+    {
+      "device": "cpu",
+      "threads": 4,
+      "variant": "onnx_pruned",
+      "batch": 1024,
+      "p50_ms": 0.3511359973344952,
+      "p95_ms": 0.37160010360821616,
+      "rows_per_s": 2916248.996893727
+    },
+    {
+      "device": "cpu",
+      "threads": 8,
+      "variant": "pytorch_cpu",
+      "batch": 1,
+      "p50_ms": 0.21962450045975856,
+      "p95_ms": 0.24976414970296898,
+      "rows_per_s": 4553.226064972785
+    },
+    {
+      "device": "cpu",
+      "threads": 8,
+      "variant": "pytorch_cpu",
+      "batch": 64,
+      "p50_ms": 0.43144949813722633,
+      "p95_ms": 0.47295635304180905,
+      "rows_per_s": 148337.17567483237
+    },
+    {
+      "device": "cpu",
+      "threads": 8,
+      "variant": "pytorch_cpu",
+      "batch": 1024,
+      "p50_ms": 0.5266039988782723,
+      "p95_ms": 0.618141997983912,
+      "rows_per_s": 1944535.1766816033
+    },
+    {
+      "device": "cpu",
+      "threads": 8,
+      "variant": "onnx_fp32",
+      "batch": 1,
+      "p50_ms": 0.03856850162264891,
+      "p95_ms": 0.06031570264894981,
+      "rows_per_s": 25927.893434490117
+    },
+    {
+      "device": "cpu",
+      "threads": 8,
+      "variant": "onnx_fp32",
+      "batch": 64,
+      "p50_ms": 0.08069400064414367,
+      "p95_ms": 0.09116704641201066,
+      "rows_per_s": 793119.6803866084
+    },
+    {
+      "device": "cpu",
+      "threads": 8,
+      "variant": "onnx_fp32",
+      "batch": 1024,
+      "p50_ms": 0.3299000018159859,
+      "p95_ms": 0.37881269636272913,
+      "rows_per_s": 3103970.883186519
+    },
+    {
+      "device": "cpu",
+      "threads": 8,
+      "variant": "onnx_int8",
+      "batch": 1,
+      "p50_ms": 0.04004150105174631,
+      "p95_ms": 0.04343634645920247,
+      "rows_per_s": 24974.088726286336
+    },
+    {
+      "device": "cpu",
+      "threads": 8,
+      "variant": "onnx_int8",
+      "batch": 64,
+      "p50_ms": 0.07955100227263756,
+      "p95_ms": 0.0910265982383862,
+      "rows_per_s": 804515.3193753475
+    },
+    {
+      "device": "cpu",
+      "threads": 8,
+      "variant": "onnx_int8",
+      "batch": 1024,
+      "p50_ms": 0.3621580035542138,
+      "p95_ms": 0.4014139445644105,
+      "rows_per_s": 2827495.1539120427
+    },
+    {
+      "device": "cpu",
+      "threads": 8,
+      "variant": "onnx_pruned",
+      "batch": 1,
+      "p50_ms": 0.04231200000504032,
+      "p95_ms": 0.043935603753197924,
+      "rows_per_s": 23633.957266989917
+    },
+    {
+      "device": "cpu",
+      "threads": 8,
+      "variant": "onnx_pruned",
+      "batch": 64,
+      "p50_ms": 0.07758400170132518,
+      "p95_ms": 0.10190270513703578,
+      "rows_per_s": 824912.3349731371
+    },
+    {
+      "device": "cpu",
+      "threads": 8,
+      "variant": "onnx_pruned",
+      "batch": 1024,
+      "p50_ms": 1.0639729989634361,
+      "p95_ms": 4.465905201504927,
+      "rows_per_s": 962430.4385521256
+    },
+    {
+      "device": "gpu",
+      "threads": null,
+      "variant": "pytorch_cuda",
+      "batch": 1,
+      "p50_ms": 0.4897290018561762,
+      "p95_ms": 0.5266054045932833,
+      "rows_per_s": 2041.9456397513507
+    },
+    {
+      "device": "gpu",
+      "threads": null,
+      "variant": "pytorch_cuda",
+      "batch": 64,
+      "p50_ms": 0.50605800061021,
+      "p95_ms": 0.5333508004696337,
+      "rows_per_s": 126467.71698664606
+    },
+    {
+      "device": "gpu",
+      "threads": null,
+      "variant": "pytorch_cuda",
+      "batch": 1024,
+      "p50_ms": 0.5522860010387376,
+      "p95_ms": 0.5992548543872545,
+      "rows_per_s": 1854111.8153892446
+    }
+  ]
+}

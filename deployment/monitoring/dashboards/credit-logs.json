@@ -28,7 +28,7 @@
    "targets": [
     {
      "refId": "A",
-     "expr": "sum by (level) (count_over_time({app=\"credit-scoring-api\", namespace=\"$namespace\"}[1m]))",
+     "expr": "sum by (level) (count_over_time({app=~\"credit-scoring-api.*\", namespace=\"$namespace\"}[1m]))",
      "legendFormat": "{{level}}",
      "datasource": {
       "type": "loki",
@@ -67,7 +67,7 @@
    "targets": [
     {
      "refId": "A",
-     "expr": "quantile_over_time(0.95, {app=\"credit-scoring-api\", namespace=\"$namespace\"} | json | path=\"/predict\" | unwrap duration_ms [5m]) by (namespace)",
+     "expr": "quantile_over_time(0.95, {app=~\"credit-scoring-api.*\", namespace=\"$namespace\"} | json | path=\"/predict\" | unwrap duration_ms [5m]) by (namespace)",
      "legendFormat": "p95, мс",
      "datasource": {
       "type": "loki",
@@ -106,7 +106,7 @@
    "targets": [
     {
      "refId": "A",
-     "expr": "{app=\"credit-scoring-api\", namespace=\"$namespace\", level=~\"ERROR|WARNING|CRITICAL\"}",
+     "expr": "{app=~\"credit-scoring-api.*\", namespace=\"$namespace\", level=~\"ERROR|WARNING|CRITICAL\"}",
      "legendFormat": "",
      "datasource": {
       "type": "loki",
@@ -143,7 +143,7 @@
    "targets": [
     {
      "refId": "A",
-     "expr": "{app=\"credit-scoring-api\", namespace=\"$namespace\"}",
+     "expr": "{app=~\"credit-scoring-api.*\", namespace=\"$namespace\"}",
      "legendFormat": "",
      "datasource": {
       "type": "loki",

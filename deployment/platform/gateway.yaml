@@ -14,3 +14,11 @@ spec:
         protocol: HTTP
       hosts:
         - "*"
+---
+# Класс для Kubernetes Ingress: объекты с ingressClassName istio обслуживает istio-ingressgateway
+apiVersion: networking.k8s.io/v1
+kind: IngressClass
+metadata:
+  name: istio
+spec:
+  controller: istio.io/ingress-controller

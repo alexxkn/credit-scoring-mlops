@@ -5,3 +5,5 @@ resources:
 autoscaling:
   minReplicas: 2
   maxReplicas: 4
+global:
+  hub: ghcr.io/alexxkn/credit-scoring-mlops/mirror/istio

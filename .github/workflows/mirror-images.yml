@@ -24,6 +24,8 @@ jobs:
           - grafana/loki:3.6.11
           - library/redis:8-alpine
           - nginxinc/nginx-unprivileged:1.29-alpine
+          - istio/proxyv2:1.30.8
+          - istio/pilot:1.30.8
     steps:
       - uses: docker/setup-buildx-action@v4
 

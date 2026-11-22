@@ -1,3 +1,6 @@
+# Образы Istio из зеркала в GHCR (.github/workflows/mirror-images.yml): Docker Hub из VK Cloud отдаёт образы с зависаниями
+global:
+  hub: ghcr.io/alexxkn/credit-scoring-mlops/mirror/istio
 pilot:
   resources:
     requests: {cpu: 100m, memory: 256Mi}

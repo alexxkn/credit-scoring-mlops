@@ -1,4 +1,5 @@
-# Метрики для canary-анализа Flagger. Пока ответов 5xx не было, такого ряда нет, поэтому числитель дополняется нулём. Поды canary называются credit-scoring-api-<hash>, primary — credit-scoring-api-primary-<hash>
+# Метрики для canary-анализа Flagger. Поды canary называются credit-scoring-api-<hash>, primary — credit-scoring-api-primary-<hash>.
+# Пока ответов 5xx не было, такого ряда нет, поэтому числитель дополняется нулём
 apiVersion: flagger.app/v1beta1
 kind: MetricTemplate
 metadata:

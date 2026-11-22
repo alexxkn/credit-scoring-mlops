@@ -1,0 +1,452 @@
+{
+ "uid": "credit-api",
+ "title": "Credit Scoring API",
+ "tags": [
+  "credit-scoring"
+ ],
+ "timezone": "browser",
+ "schemaVersion": 39,
+ "refresh": "30s",
+ "time": {
+  "from": "now-3h",
+  "to": "now"
+ },
+ "panels": [
+  {
+   "type": "timeseries",
+   "title": "Запросы в секунду",
+   "gridPos": {
+    "x": 0,
+    "y": 0,
+    "w": 12,
+    "h": 8
+   },
+   "datasource": {
+    "type": "prometheus",
+    "uid": "${ds_uid}"
+   },
+   "targets": [
+    {
+     "refId": "A",
+     "expr": "sum by (path, status) (rate(credit_api_requests_total{namespace=\"$namespace\"}[1m]))",
+     "legendFormat": "{{path}} {{status}}",
+     "datasource": {
+      "type": "prometheus",
+      "uid": "${ds_uid}"
+     }
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {
+     "unit": "reqps"
+    },
+    "overrides": []
+   },
+   "options": {
+    "legend": {
+     "showLegend": true,
+     "displayMode": "list",
+     "placement": "bottom"
+    }
+   },
+   "id": 1
+  },
+  {
+   "type": "timeseries",
+   "title": "Доля ответов 5xx",
+   "gridPos": {
+    "x": 12,
+    "y": 0,
+    "w": 12,
+    "h": 8
+   },
+   "datasource": {
+    "type": "prometheus",
+    "uid": "${ds_uid}"
+   },
+   "targets": [
+    {
+     "refId": "A",
+     "expr": "sum(rate(credit_api_requests_total{namespace=\"$namespace\",status=~\"5..\"}[5m])) / sum(rate(credit_api_requests_total{namespace=\"$namespace\"}[5m]))",
+     "legendFormat": "5xx",
+     "datasource": {
+      "type": "prometheus",
+      "uid": "${ds_uid}"
+     }
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {
+     "unit": "percentunit"
+    },
+    "overrides": []
+   },
+   "options": {
+    "legend": {
+     "showLegend": true,
+     "displayMode": "list",
+     "placement": "bottom"
+    }
+   },
+   "id": 2
+  },
+  {
+   "type": "timeseries",
+   "title": "Задержка /predict",
+   "gridPos": {
+    "x": 0,
+    "y": 8,
+    "w": 12,
+    "h": 8
+   },
+   "datasource": {
+    "type": "prometheus",
+    "uid": "${ds_uid}"
+   },
+   "targets": [
+    {
+     "refId": "A",
+     "expr": "histogram_quantile(0.5, sum by (le) (rate(credit_api_request_duration_seconds_bucket{namespace=\"$namespace\",path=\"/predict\"}[5m])))",
+     "legendFormat": "p50",
+     "datasource": {
+      "type": "prometheus",
+      "uid": "${ds_uid}"
+     }
+    },
+    {
+     "refId": "B",
+     "expr": "histogram_quantile(0.95, sum by (le) (rate(credit_api_request_duration_seconds_bucket{namespace=\"$namespace\",path=\"/predict\"}[5m])))",
+     "legendFormat": "p95",
+     "datasource": {
+      "type": "prometheus",
+      "uid": "${ds_uid}"
+     }
+    },
+    {
+     "refId": "C",
+     "expr": "histogram_quantile(0.99, sum by (le) (rate(credit_api_request_duration_seconds_bucket{namespace=\"$namespace\",path=\"/predict\"}[5m])))",
+     "legendFormat": "p99",
+     "datasource": {
+      "type": "prometheus",
+      "uid": "${ds_uid}"
+     }
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {
+     "unit": "s"
+    },
+    "overrides": []
+   },
+   "options": {
+    "legend": {
+     "showLegend": true,
+     "displayMode": "list",
+     "placement": "bottom"
+    }
+   },
+   "id": 3
+  },
+  {
+   "type": "timeseries",
+   "title": "Инференс ONNX, p95",
+   "gridPos": {
+    "x": 12,
+    "y": 8,
+    "w": 12,
+    "h": 8
+   },
+   "datasource": {
+    "type": "prometheus",
+    "uid": "${ds_uid}"
+   },
+   "targets": [
+    {
+     "refId": "A",
+     "expr": "histogram_quantile(0.95, sum by (le) (rate(credit_model_inference_seconds_bucket{namespace=\"$namespace\"}[5m])))",
+     "legendFormat": "p95",
+     "datasource": {
+      "type": "prometheus",
+      "uid": "${ds_uid}"
+     }
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {
+     "unit": "s"
+    },
+    "overrides": []
+   },
+   "options": {
+    "legend": {
+     "showLegend": true,
+     "displayMode": "list",
+     "placement": "bottom"
+    }
+   },
+   "id": 4
+  },
+  {
+   "type": "timeseries",
+   "title": "Предсказания по версиям модели",
+   "gridPos": {
+    "x": 0,
+    "y": 16,
+    "w": 12,
+    "h": 8
+   },
+   "datasource": {
+    "type": "prometheus",
+    "uid": "${ds_uid}"
+   },
+   "targets": [
+    {
+     "refId": "A",
+     "expr": "sum by (model_version, prediction) (rate(credit_predictions_total{namespace=\"$namespace\"}[5m]))",
+     "legendFormat": "{{model_version}} класс {{prediction}}",
+     "datasource": {
+      "type": "prometheus",
+      "uid": "${ds_uid}"
+     }
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {
+     "unit": "reqps"
+    },
+    "overrides": []
+   },
+   "options": {
+    "legend": {
+     "showLegend": true,
+     "displayMode": "list",
+     "placement": "bottom"
+    }
+   },
+   "id": 5
+  },
+  {
+   "type": "heatmap",
+   "title": "Распределение вероятности дефолта",
+   "gridPos": {
+    "x": 12,
+    "y": 16,
+    "w": 12,
+    "h": 8
+   },
+   "datasource": {
+    "type": "prometheus",
+    "uid": "${ds_uid}"
+   },
+   "targets": [
+    {
+     "refId": "A",
+     "expr": "sum by (le) (increase(credit_prediction_probability_bucket{namespace=\"$namespace\"}[5m]))",
+     "legendFormat": "{{le}}",
+     "datasource": {
+      "type": "prometheus",
+      "uid": "${ds_uid}"
+     }
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {
+     "unit": "short"
+    },
+    "overrides": []
+   },
+   "options": {
+    "calculate": false,
+    "yAxis": {
+     "unit": "short"
+    },
+    "cellGap": 1
+   },
+   "id": 6
+  },
+  {
+   "type": "timeseries",
+   "title": "Попадания в кеш Redis",
+   "gridPos": {
+    "x": 0,
+    "y": 24,
+    "w": 12,
+    "h": 8
+   },
+   "datasource": {
+    "type": "prometheus",
+    "uid": "${ds_uid}"
+   },
+   "targets": [
+    {
+     "refId": "A",
+     "expr": "sum(rate(credit_cache_requests_total{namespace=\"$namespace\",result=\"hit\"}[5m])) / sum(rate(credit_cache_requests_total{namespace=\"$namespace\"}[5m]))",
+     "legendFormat": "hit ratio",
+     "datasource": {
+      "type": "prometheus",
+      "uid": "${ds_uid}"
+     }
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {
+     "unit": "percentunit"
+    },
+    "overrides": []
+   },
+   "options": {
+    "legend": {
+     "showLegend": true,
+     "displayMode": "list",
+     "placement": "bottom"
+    }
+   },
+   "id": 7
+  },
+  {
+   "type": "timeseries",
+   "title": "Поды API",
+   "gridPos": {
+    "x": 12,
+    "y": 24,
+    "w": 12,
+    "h": 8
+   },
+   "datasource": {
+    "type": "prometheus",
+    "uid": "${ds_uid}"
+   },
+   "targets": [
+    {
+     "refId": "A",
+     "expr": "kube_deployment_status_replicas_available{namespace=\"$namespace\",deployment=~\"credit-scoring-api.*\"}",
+     "legendFormat": "{{deployment}}",
+     "datasource": {
+      "type": "prometheus",
+      "uid": "${ds_uid}"
+     }
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {
+     "unit": "short"
+    },
+    "overrides": []
+   },
+   "options": {
+    "legend": {
+     "showLegend": true,
+     "displayMode": "list",
+     "placement": "bottom"
+    }
+   },
+   "id": 8
+  },
+  {
+   "type": "timeseries",
+   "title": "CPU подов API",
+   "gridPos": {
+    "x": 0,
+    "y": 32,
+    "w": 12,
+    "h": 8
+   },
+   "datasource": {
+    "type": "prometheus",
+    "uid": "${ds_uid}"
+   },
+   "targets": [
+    {
+     "refId": "A",
+     "expr": "sum by (pod) (rate(container_cpu_usage_seconds_total{namespace=\"$namespace\",container=\"api\"}[2m]))",
+     "legendFormat": "{{pod}}",
+     "datasource": {
+      "type": "prometheus",
+      "uid": "${ds_uid}"
+     }
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {
+     "unit": "cores"
+    },
+    "overrides": []
+   },
+   "options": {
+    "legend": {
+     "showLegend": true,
+     "displayMode": "list",
+     "placement": "bottom"
+    }
+   },
+   "id": 9
+  },
+  {
+   "type": "timeseries",
+   "title": "Память подов API",
+   "gridPos": {
+    "x": 12,
+    "y": 32,
+    "w": 12,
+    "h": 8
+   },
+   "datasource": {
+    "type": "prometheus",
+    "uid": "${ds_uid}"
+   },
+   "targets": [
+    {
+     "refId": "A",
+     "expr": "sum by (pod) (container_memory_working_set_bytes{namespace=\"$namespace\",container=\"api\"})",
+     "legendFormat": "{{pod}}",
+     "datasource": {
+      "type": "prometheus",
+      "uid": "${ds_uid}"
+     }
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {
+     "unit": "bytes"
+    },
+    "overrides": []
+   },
+   "options": {
+    "legend": {
+     "showLegend": true,
+     "displayMode": "list",
+     "placement": "bottom"
+    }
+   },
+   "id": 10
+  }
+ ],
+ "templating": {
+  "list": [
+   {
+    "name": "ds_uid",
+    "type": "datasource",
+    "query": "prometheus",
+    "hide": 2,
+    "current": {
+     "text": "Prometheus",
+     "value": "prometheus"
+    }
+   },
+   {
+    "name": "namespace",
+    "type": "query",
+    "datasource": {
+     "type": "prometheus",
+     "uid": "${ds_uid}"
+    },
+    "query": "label_values(credit_api_requests_total, namespace)",
+    "refresh": 2,
+    "current": {
+     "text": "credit-scoring-prod",
+     "value": "credit-scoring-prod"
+    }
+   }
+  ]
+ }
+}

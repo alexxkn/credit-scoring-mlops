@@ -1,0 +1,61 @@
+- name: credit-scoring-api
+  rules:
+    - alert: CreditApiDown
+      expr: sum by (namespace) (up{container="api", namespace=~"credit-scoring.*"}) == 0
+      for: 2m
+      labels: {severity: critical}
+      annotations:
+        summary: "API скоринга в {{ $labels.namespace }} не отвечает Prometheus"
+        runbook_url: https://github.com/alexxkn/credit-scoring-mlops/blob/main/docs/runbook.md#creditapidown
+    - alert: CreditApiHighErrorRate
+      expr: |
+        sum by (namespace) (rate(credit_api_requests_total{status=~"5.."}[5m]))
+          / sum by (namespace) (rate(credit_api_requests_total[5m])) > 0.02
+      for: 5m
+      labels: {severity: critical}
+      annotations:
+        summary: "Доля ответов 5xx в {{ $labels.namespace }}: {{ $value | humanizePercentage }}"
+        runbook_url: https://github.com/alexxkn/credit-scoring-mlops/blob/main/docs/runbook.md#creditapihigherrorrate
+    - alert: CreditApiHighLatency
+      expr: |
+        histogram_quantile(0.95, sum by (namespace, le) (rate(credit_api_request_duration_seconds_bucket{path="/predict"}[5m]))) > 0.3
+      for: 10m
+      labels: {severity: warning}
+      annotations:
+        summary: "p95 /predict в {{ $labels.namespace }}: {{ $value | humanizeDuration }}"
+        runbook_url: https://github.com/alexxkn/credit-scoring-mlops/blob/main/docs/runbook.md#creditapihighlatency
+    - alert: CreditDefaultRateShift
+      expr: |
+        (sum by (namespace) (rate(credit_predictions_total{prediction="1"}[1h])) / sum by (namespace) (rate(credit_predictions_total[1h])))
+          > 1.5 * (sum by (namespace) (rate(credit_predictions_total{prediction="1"}[1d] offset 1d)) / sum by (namespace) (rate(credit_predictions_total[1d] offset 1d)))
+      for: 30m
+      labels: {severity: warning}
+      annotations:
+        summary: "Доля отказов (прогноз дефолта) в {{ $labels.namespace }} выросла в 1.5 раза к прошлым суткам"
+        runbook_url: https://github.com/alexxkn/credit-scoring-mlops/blob/main/docs/runbook.md#creditdefaultrateshift
+    - alert: CreditApiPodRestarting
+      expr: increase(kube_pod_container_status_restarts_total{container="api", namespace=~"credit-scoring.*"}[30m]) > 2
+      labels: {severity: warning}
+      annotations:
+        summary: "Под {{ $labels.pod }} перезапускается"
+        runbook_url: https://github.com/alexxkn/credit-scoring-mlops/blob/main/docs/runbook.md#creditapipodrestarting
+- name: credit-scoring-model
+  rules:
+    - alert: CreditDataDrift
+      expr: max(credit_data_drift_detected) == 1 or max(credit_prediction_drift_detected) == 1
+      labels: {severity: warning}
+      annotations:
+        summary: "Evidently: дрифт данных или вероятностей, доля признаков с дрифтом {{ with query \"max(credit_data_drift_share)\" }}{{ . | first | value | humanizePercentage }}{{ end }}"
+        runbook_url: https://github.com/alexxkn/credit-scoring-mlops/blob/main/docs/runbook.md#creditdatadrift
+    - alert: CreditConceptDrift
+      expr: max(credit_concept_drift_detected) == 1
+      labels: {severity: critical}
+      annotations:
+        summary: "ROC-AUC на размеченных ответах упал на {{ with query \"max(credit_model_performance_decay)\" }}{{ . | first | value | printf \"%.3f\" }}{{ end }} к тесту"
+        runbook_url: https://github.com/alexxkn/credit-scoring-mlops/blob/main/docs/runbook.md#creditconceptdrift
+    - alert: CreditDriftMonitorStale
+      expr: time() - max(credit_drift_last_run_timestamp) > 7200
+      labels: {severity: warning}
+      annotations:
+        summary: "Проверка дрифта не запускалась больше 2 часов"
+        runbook_url: https://github.com/alexxkn/credit-scoring-mlops/blob/main/docs/runbook.md#creditdriftmonitorstale

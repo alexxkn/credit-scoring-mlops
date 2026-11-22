@@ -1,0 +1,19 @@
+groups:
+  - name: credit-scoring-logs
+    rules:
+      - alert: CreditApiErrorLogs
+        expr: sum by (namespace) (count_over_time({app="credit-scoring-api"} | json | level=~"ERROR|CRITICAL" [5m])) > 10
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "В логах API {{ $labels.namespace }} больше 10 ошибок за 5 минут"
+          runbook_url: https://github.com/alexxkn/credit-scoring-mlops/blob/main/docs/runbook.md#creditapierrorlogs
+      - alert: CreditRedisUnavailable
+        expr: sum by (namespace) (count_over_time({app="credit-scoring-api"} |= "redis" | json | level="WARNING" [5m])) > 20
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "API {{ $labels.namespace }} не может писать в Redis: кеш и журнал для мониторинга дрифта не работают"
+          runbook_url: https://github.com/alexxkn/credit-scoring-mlops/blob/main/docs/runbook.md#creditredisunavailable

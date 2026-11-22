@@ -1,0 +1,36 @@
+name: canary-release
+
+# Выкатка новой версии модели из S3 (как делает DAG переобучения): Flagger переводит трафик ступенями 10–50%
+# и откатывает версию сам, если ошибки, задержка или доля прогнозов дефолта выходят за пороги
+on:
+  workflow_dispatch:
+    inputs:
+      model_version:
+        description: Версия модели в бакете mifirobo-prod-models, например nn-v1-int8
+        required: true
+
+concurrency:
+  group: deploy-production
+
+jobs:
+  canary:
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: azure/setup-kubectl@v5
+
+      - name: Kubeconfig
+        run: |
+          mkdir -p ~/.kube
+          echo "${{ secrets.KUBECONFIG_B64 }}" | base64 -d > ~/.kube/config
+          chmod 600 ~/.kube/config
+
+      - name: Switch model
+        run: |
+          kubectl -n credit-scoring-prod set env deployment/credit-scoring-api -c api \
+            MODEL_URI="s3://mifirobo-prod-models/${{ inputs.model_version }}" MODEL_VERSION="${{ inputs.model_version }}"
+
+      - name: Wait for Flagger
+        run: ./scripts/wait_canary.sh credit-scoring-prod

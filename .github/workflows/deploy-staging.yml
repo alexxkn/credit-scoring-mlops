@@ -1,0 +1,53 @@
+name: deploy-staging
+
+# После успешной сборки main: образы с тегом коммита выкатываются в staging через Blue-Green с зеркалированием трафика
+on:
+  workflow_run:
+    workflows: [build-and-test]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Тег образов (короткий sha коммита)
+        required: true
+
+concurrency:
+  group: deploy-staging
+
+jobs:
+  deploy:
+    if: github.event_name == 'workflow_dispatch' || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push')
+    runs-on: ubuntu-latest
+    environment: staging
+    outputs:
+      tag: ${{ steps.tag.outputs.tag }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+
+      - name: Tag
+        id: tag
+        run: |
+          tag="${{ inputs.tag }}"
+          sha="${{ github.event.workflow_run.head_sha }}"
+          echo "tag=${tag:-${sha::7}}" >> "$GITHUB_OUTPUT"
+
+      - uses: azure/setup-kubectl@v5
+
+      - name: Kubeconfig
+        run: |
+          mkdir -p ~/.kube
+          echo "${{ secrets.KUBECONFIG_B64 }}" | base64 -d > ~/.kube/config
+          chmod 600 ~/.kube/config
+
+      - name: Deploy
+        env:
+          APP_S3_ACCESS_KEY: ${{ secrets.APP_S3_ACCESS_KEY }}
+          APP_S3_SECRET_KEY: ${{ secrets.APP_S3_SECRET_KEY }}
+          INGRESS_HOST: ${{ vars.INGRESS_HOST }}
+        run: ./scripts/deploy.sh staging "${{ steps.tag.outputs.tag }}"
+
+      - name: Smoke test
+        run: ./scripts/smoke_test.sh "http://staging.${{ vars.INGRESS_HOST }}/api"

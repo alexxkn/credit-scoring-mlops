@@ -1,0 +1,60 @@
+name: rollback
+
+# abort — прервать идущую выкатку: Flagger возвращает весь трафик на primary.
+# version — вернуть прежний образ или модель без canary-анализа, когда плохая версия уже стала primary
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        type: choice
+        options: [production, staging]
+        default: production
+      mode:
+        type: choice
+        options: [abort, version]
+        default: abort
+      tag:
+        description: "mode=version: тег образа, на который откатываемся"
+        required: false
+      model_version:
+        description: "mode=version: версия модели в S3, на которую откатываемся"
+        required: false
+
+jobs:
+  rollback:
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+    env:
+      NAMESPACE: ${{ inputs.environment == 'production' && 'credit-scoring-prod' || 'credit-scoring-staging' }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: azure/setup-kubectl@v5
+
+      - name: Kubeconfig
+        run: |
+          mkdir -p ~/.kube
+          echo "${{ secrets.KUBECONFIG_B64 }}" | base64 -d > ~/.kube/config
+          chmod 600 ~/.kube/config
+
+      - name: Abort rollout
+        if: inputs.mode == 'abort'
+        run: |
+          echo "{\"name\":\"credit-scoring-api\",\"namespace\":\"$NAMESPACE\"}" > gate.json
+          kubectl create --raw "/api/v1/namespaces/$NAMESPACE/services/flagger-loadtester:80/proxy/rollback/open" -f gate.json
+          ./scripts/wait_canary.sh "$NAMESPACE"
+          kubectl create --raw "/api/v1/namespaces/$NAMESPACE/services/flagger-loadtester:80/proxy/rollback/close" -f gate.json
+
+      - name: Roll back to version
+        if: inputs.mode == 'version'
+        run: |
+          kubectl -n "$NAMESPACE" patch canary credit-scoring-api --type merge -p '{"spec":{"skipAnalysis":true}}'
+          if [[ -n "${{ inputs.tag }}" ]]; then
+            kubectl -n "$NAMESPACE" set image deployment/credit-scoring-api api="ghcr.io/${{ github.repository }}/backend:${{ inputs.tag }}"
+          fi
+          if [[ -n "${{ inputs.model_version }}" ]]; then
+            kubectl -n "$NAMESPACE" set env deployment/credit-scoring-api -c api \
+              MODEL_URI="s3://mifirobo-prod-models/${{ inputs.model_version }}" MODEL_VERSION="${{ inputs.model_version }}"
+          fi
+          ./scripts/wait_canary.sh "$NAMESPACE"
+          kubectl -n "$NAMESPACE" patch canary credit-scoring-api --type merge -p '{"spec":{"skipAnalysis":false}}'

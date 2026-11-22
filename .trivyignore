@@ -1,0 +1,11 @@
+# CI создаёт секрет приложения с ключами S3 и управляет Service, NetworkPolicy и Ingress своего namespace:
+# права выданы RoleBinding только в credit-scoring-staging и credit-scoring-prod, кластерных прав нет
+KSV-0041
+KSV-0056
+# VK Object Storage не поддерживает PutPublicAccessBlock (501 NotImplemented), бакеты приватные через ACL
+AWS-0086
+AWS-0087
+AWS-0091
+AWS-0093
+# Шифрование бакетов своим ключом KMS не настраиваем: в них публичный датасет Kaggle, модели и отчёты без персональных данных
+AWS-0132

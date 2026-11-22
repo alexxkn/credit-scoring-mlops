@@ -1,0 +1,159 @@
+name: build-and-test
+
+# Линтеры на каждый push. Тесты, сборка и сканирование — на pull request в main, на merge в main и вручную.
+# Образы из main получают тег sha коммита и latest, с них стартует deploy-staging
+on:
+  push:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  REGISTRY: ghcr.io/${{ github.repository }}
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+
+      - name: Python
+        run: |
+          pip install $(grep -E '^(flake8|black)==' requirements-dev.txt)
+          flake8 src tests loadtest airflow
+          black --check src tests loadtest airflow
+
+      - uses: hashicorp/setup-terraform@v4
+        with:
+          terraform_version: 1.17.1
+
+      - name: Terraform fmt и validate
+        run: |
+          terraform -chdir=infrastructure fmt -check -recursive
+          for env in staging production; do
+            terraform -chdir=infrastructure/environments/$env init -backend=false -input=false > /dev/null
+            terraform -chdir=infrastructure/environments/$env validate
+          done
+
+      - name: Манифесты Kubernetes
+        run: |
+          curl -sSL https://github.com/yannh/kubeconform/releases/download/v0.8.0/kubeconform-linux-amd64.tar.gz | tar xz kubeconform
+          for overlay in staging production; do
+            kubectl kustomize deployment/kubernetes/overlays/$overlay | ./kubeconform -strict -summary -ignore-missing-schemas
+          done
+
+      - name: Shell
+        run: shellcheck infrastructure/scripts/*.sh deployment/*/install.sh loadtest/*.sh scripts/*.sh
+
+  test:
+    if: github.event_name != 'push' || github.ref == 'refs/heads/main'
+    needs: lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          pip install torch==2.11.0 --index-url https://download.pytorch.org/whl/cpu
+          pip install -r requirements.txt -r requirements-dev.txt fakeredis
+
+      - name: Download data
+        run: dvc update data/raw/UCI_Credit_Card.csv.dvc
+
+      - name: Validate data with Great Expectations
+        run: python -m src.data.validation data/raw/UCI_Credit_Card.csv
+
+      - name: Run unit tests
+        run: pytest
+
+  security-scan:
+    if: github.event_name != 'push' || github.ref == 'refs/heads/main'
+    needs: lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      # Уязвимые зависимости Python и node, секреты в коде, ошибки конфигурации Terraform, Dockerfile и манифестов
+      - name: Trivy filesystem
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          scan-type: fs
+          scanners: vuln,secret,misconfig
+          severity: CRITICAL,HIGH
+          ignore-unfixed: true
+          skip-dirs: notebooks
+          trivyignores: .trivyignore
+          exit-code: "1"
+
+  build:
+    if: github.event_name != 'push' || github.ref == 'refs/heads/main'
+    needs: [test, security-scan]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      fail-fast: false
+      matrix:
+        image: [backend, frontend, trainer, drift, mlflow]
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: docker/setup-buildx-action@v4
+
+      - uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Tags
+        id: tags
+        run: |
+          echo "sha=${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
+          tags="${REGISTRY}/${{ matrix.image }}:${GITHUB_SHA::7}"
+          if [[ "${GITHUB_REF}" == refs/heads/main ]]; then tags="${tags},${REGISTRY}/${{ matrix.image }}:latest"; fi
+          echo "tags=${tags}" >> "$GITHUB_OUTPUT"
+          context=.
+          if [[ "${{ matrix.image }}" == frontend ]]; then context=deployment/docker/frontend; fi
+          echo "context=${context}" >> "$GITHUB_OUTPUT"
+
+      # Модели и данные DVC скачиваются из S3 на этапе сборки, ключи передаются как build secret и не остаются в слоях
+      - uses: docker/build-push-action@v7
+        with:
+          context: ${{ steps.tags.outputs.context }}
+          file: deployment/docker/${{ matrix.image }}/Dockerfile
+          tags: ${{ steps.tags.outputs.tags }}
+          push: ${{ github.ref == 'refs/heads/main' }}
+          load: ${{ github.ref != 'refs/heads/main' }}
+          labels: org.opencontainers.image.source=https://github.com/${{ github.repository }}
+          secrets: |
+            aws_access_key_id=${{ secrets.DVC_AWS_ACCESS_KEY_ID }}
+            aws_secret_access_key=${{ secrets.DVC_AWS_SECRET_ACCESS_KEY }}
+          cache-from: type=gha,scope=${{ matrix.image }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.image }}
+
+      # Уязвимости в собранном образе: критические с готовым исправлением останавливают выкатку
+      - name: Trivy image
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          image-ref: ${{ env.REGISTRY }}/${{ matrix.image }}:${{ steps.tags.outputs.sha }}
+          severity: CRITICAL
+          ignore-unfixed: true
+          trivyignores: .trivyignore
+          exit-code: "1"
+        env:
+          TRIVY_USERNAME: ${{ github.actor }}
+          TRIVY_PASSWORD: ${{ secrets.GITHUB_TOKEN }}

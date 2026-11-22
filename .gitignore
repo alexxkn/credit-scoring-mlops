@@ -17,3 +17,9 @@ reports/drift_report.json
 /models/nn/model.onnx
 /models/nn/model.int8.onnx
 /models/nn/model.pruned.onnx
+.terraform/
+*.tfplan
+*.tfstate
+*.tfstate.backup
+node_modules/
+deployment/docker/frontend/dist/

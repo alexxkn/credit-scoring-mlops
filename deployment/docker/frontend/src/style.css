@@ -1,0 +1,9 @@
+body { font-family: system-ui, sans-serif; margin: 0; background: #f5f6f8; color: #1d2330; }
+main { max-width: 880px; margin: 32px auto; padding: 24px; background: #fff; border-radius: 8px; }
+form { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; margin-bottom: 16px; }
+label { display: flex; flex-direction: column; font-size: 13px; gap: 4px; }
+input { padding: 6px 8px; border: 1px solid #c8ccd4; border-radius: 4px; font-size: 14px; }
+button { padding: 10px 20px; font-size: 15px; border: 0; border-radius: 4px; background: #2b6cdf; color: #fff; cursor: pointer; }
+#result { margin-top: 20px; padding: 16px; border-radius: 6px; background: #eef3fd; }
+.meta { font-size: 12px; color: #5b6475; }
+#error { color: #b3261e; }

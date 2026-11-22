@@ -1,21 +1,54 @@
 import contextlib
-import os
+import json
+import logging
+import sys
+import time
+import uuid
 
 import fastapi
+import prometheus_client
 import pydantic
 
-import src.models.predict as predict
+import src.api.model_store as model_store
+import src.api.prediction_log as prediction_log
+import src.api.settings as settings
 
-MODEL_PATH = os.environ.get("MODEL_PATH", "models/credit_default_model.pkl")
+
+class JsonFormatter(logging.Formatter):
+    def format(self, record):
+        entry = {"ts": self.formatTime(record), "level": record.levelname, "logger": record.name, "message": record.getMessage()}
+        entry.update(getattr(record, "extra_fields", {}))
+        return json.dumps(entry, ensure_ascii=False)
+
+
+handler = logging.StreamHandler(sys.stdout)
+handler.setFormatter(JsonFormatter())
+logging.basicConfig(level=settings.LOG_LEVEL, handlers=[handler], force=True)
+logger = logging.getLogger("credit_api")
+
+REQUESTS = prometheus_client.Counter("credit_api_requests_total", "HTTP-запросы к API", ["method", "path", "status"])
+LATENCY = prometheus_client.Histogram(
+    "credit_api_request_duration_seconds", "Время обработки запроса", ["path"], buckets=(0.001, 0.0025, 0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1)
+)
+INFERENCE = prometheus_client.Histogram("credit_model_inference_seconds", "Время инференса ONNX", buckets=(0.0001, 0.00025, 0.0005, 0.001, 0.0025, 0.005, 0.01))
+PREDICTIONS = prometheus_client.Counter("credit_predictions_total", "Предсказания по классам", ["model_version", "prediction"])
+PROBABILITY = prometheus_client.Histogram(
+    "credit_prediction_probability", "Распределение вероятности дефолта", ["model_version"], buckets=[i / 10 for i in range(1, 11)]
+)
+CACHE = prometheus_client.Counter("credit_cache_requests_total", "Обращения к кешу Redis", ["result"])
+MODEL_INFO = prometheus_client.Gauge("credit_model_info", "Загруженная версия модели", ["model_version"])
 
 
 @contextlib.asynccontextmanager
 async def lifespan(app):
-    app.state.model = predict.load_model(MODEL_PATH)
+    app.state.model = model_store.load()
+    app.state.log = prediction_log.PredictionLog(settings.REDIS_URL)
+    MODEL_INFO.labels(app.state.model.version).set(1)
+    logger.info("model loaded", extra={"extra_fields": {"model_version": app.state.model.version, "threshold": app.state.model.threshold}})
     yield
 
 
-app = fastapi.FastAPI(title="Credit Default Prediction API", lifespan=lifespan)
+app = fastapi.FastAPI(title="Credit Default Prediction API", version="2.0", lifespan=lifespan)
 
 PayStatus = pydantic.conint(ge=-2, le=9)
 Amount = pydantic.confloat(ge=0)
@@ -48,8 +81,55 @@ class ClientData(pydantic.BaseModel):
 
 
 class Prediction(pydantic.BaseModel):
+    request_id: str
     default_prediction: int
     default_probability: float
+    model_version: str
+
+
+class Feedback(pydantic.BaseModel):
+    request_id: str
+    actual: int = pydantic.Field(ge=0, le=1)
+
+
+@app.middleware("http")
+async def observe(request, call_next):
+    start = time.perf_counter()
+    response = await call_next(request)
+    duration = time.perf_counter() - start
+    route = request.scope.get("route")
+    path = route.path if route else "unmatched"
+    if path != "/metrics":
+        REQUESTS.labels(request.method, path, response.status_code).inc()
+        LATENCY.labels(path).observe(duration)
+        logger.info(
+            "request",
+            extra={"extra_fields": {"method": request.method, "path": path, "status": response.status_code, "duration_ms": round(duration * 1000, 3)}},
+        )
+    return response
+
+
+def predict_records(app_state, records):
+    model, log = app_state.model, app_state.log
+    probabilities = [log.get(model.version, record) for record in records]
+    CACHE.labels("hit").inc(sum(p is not None for p in probabilities))
+    missing = [i for i, p in enumerate(probabilities) if p is None]
+    if missing:
+        CACHE.labels("miss").inc(len(missing))
+        with INFERENCE.time():
+            computed = model.predict_proba([records[i] for i in missing])
+        for i, probability in zip(missing, computed):
+            probabilities[i] = float(probability)
+            log.put(model.version, records[i], probabilities[i])
+    results = []
+    for record, probability in zip(records, probabilities):
+        request_id = str(uuid.uuid4())
+        label = int(probability >= model.threshold)
+        PREDICTIONS.labels(model.version, str(label)).inc()
+        PROBABILITY.labels(model.version).observe(probability)
+        log.append(request_id, model.version, record, probability)
+        results.append(Prediction(request_id=request_id, default_prediction=label, default_probability=probability, model_version=model.version))
+    return results
 
 
 @app.get("/")
@@ -57,7 +137,62 @@ def read_root():
     return {"message": "Credit Default Prediction API is alive!"}
 
 
+@app.get("/health")
+def health():
+    return {"status": "ok"}
+
+
+@app.get("/ready")
+def ready(request: fastapi.Request):
+    if not request.app.state.log.ping():
+        # Redis нужен только для кеша и журнала, без него API отвечает, поэтому трафик с пода не снимаем
+        logger.warning("redis unavailable")
+    return {"status": "ready", "model_version": request.app.state.model.version}
+
+
 @app.post("/predict", response_model=Prediction)
-def predict_default(data: ClientData, request: fastapi.Request):
-    labels, probabilities = predict.predict(request.app.state.model, [data.model_dump()])
-    return Prediction(default_prediction=int(labels[0]), default_probability=float(probabilities[0]))
+def predict(data: ClientData, request: fastapi.Request):
+    return predict_records(request.app.state, [data.model_dump()])[0]
+
+
+@app.post("/predict/batch", response_model=list[Prediction])
+def predict_batch(data: list[ClientData], request: fastapi.Request):
+    if len(data) > 1000:
+        raise fastapi.HTTPException(status_code=413, detail="не больше 1000 клиентов за запрос")
+    return predict_records(request.app.state, [item.model_dump() for item in data])
+
+
+@app.post("/feedback")
+def feedback(data: Feedback, request: fastapi.Request):
+    if not request.app.state.log.feedback(data.request_id, data.actual):
+        raise fastapi.HTTPException(status_code=503, detail="журнал предсказаний не настроен")
+    return {"status": "stored"}
+
+
+class SeldonData(pydantic.BaseModel):
+    names: list[str] | None = None
+    ndarray: list[list[float]]
+
+
+class SeldonRequest(pydantic.BaseModel):
+    data: SeldonData
+
+
+@app.post("/api/v1.0/predictions")
+def seldon_predict(body: SeldonRequest, request: fastapi.Request):
+    """Протокол Seldon Core v1: этим же образом обслуживаются предикторы SeldonDeployment (A/B и shadow)."""
+    names = body.data.names or list(ClientData.model_fields)
+    try:
+        records = [ClientData(**dict(zip(names, row))).model_dump() for row in body.data.ndarray]
+    except pydantic.ValidationError as error:
+        raise fastapi.HTTPException(status_code=422, detail=error.errors(include_url=False, include_context=False))
+    predictions = predict_records(request.app.state, records)
+    return {
+        "data": {"names": ["default_probability", "default_prediction"], "ndarray": [[p.default_probability, p.default_prediction] for p in predictions]},
+        "meta": {"tags": {"model_version": request.app.state.model.version}},
+    }
+
+
+@app.get("/metrics")
+def metrics():
+    return fastapi.Response(prometheus_client.generate_latest(), media_type=prometheus_client.CONTENT_TYPE_LATEST)

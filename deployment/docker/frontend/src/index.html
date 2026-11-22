@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Кредитный скоринг</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main>
+    <h1>Вероятность дефолта клиента</h1>
+    <form id="client-form"></form>
+    <button type="submit" form="client-form">Рассчитать</button>
+    <section id="result" hidden>
+      <p>Вероятность дефолта: <strong id="probability"></strong></p>
+      <p>Решение модели: <strong id="decision"></strong></p>
+      <p class="meta">Версия модели <span id="version"></span>, запрос <span id="request-id"></span></p>
+    </section>
+    <p id="error" hidden></p>
+  </main>
+  <script src="main.js"></script>
+</body>
+</html>

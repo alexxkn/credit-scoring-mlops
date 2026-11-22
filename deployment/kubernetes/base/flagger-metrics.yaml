@@ -1,4 +1,4 @@
-# Метрики для canary-анализа Flagger. Поды canary называются credit-scoring-api-<hash>, primary — credit-scoring-api-primary-<hash>
+# Метрики для canary-анализа Flagger. Пока ответов 5xx не было, такого ряда нет, поэтому числитель дополняется нулём. Поды canary называются credit-scoring-api-<hash>, primary — credit-scoring-api-primary-<hash>
 apiVersion: flagger.app/v1beta1
 kind: MetricTemplate
 metadata:
@@ -8,7 +8,7 @@ spec:
     type: prometheus
     address: http://kube-prometheus-stack-prometheus.monitoring:9090
   query: |
-    100 * sum(rate(credit_api_requests_total{namespace="{{ namespace }}", pod!~"{{ target }}-primary-.*", status=~"5.."}[{{ interval }}]))
+    100 * (sum(rate(credit_api_requests_total{namespace="{{ namespace }}", pod!~"{{ target }}-primary-.*", status=~"5.."}[{{ interval }}])) or on() vector(0))
       / sum(rate(credit_api_requests_total{namespace="{{ namespace }}", pod!~"{{ target }}-primary-.*"}[{{ interval }}]))
 ---
 # Доля прогнозов дефолта у новой версии: сломанная модель, которая всем отвечает 0 или 1, не проходит анализ даже без ошибок HTTP
@@ -21,5 +21,5 @@ spec:
     type: prometheus
     address: http://kube-prometheus-stack-prometheus.monitoring:9090
   query: |
-    sum(rate(credit_predictions_total{namespace="{{ namespace }}", pod!~"{{ target }}-primary-.*", prediction="1"}[{{ interval }}]))
+    (sum(rate(credit_predictions_total{namespace="{{ namespace }}", pod!~"{{ target }}-primary-.*", prediction="1"}[{{ interval }}])) or on() vector(0))
       / sum(rate(credit_predictions_total{namespace="{{ namespace }}", pod!~"{{ target }}-primary-.*"}[{{ interval }}]))

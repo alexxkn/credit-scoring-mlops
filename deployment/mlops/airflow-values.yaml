@@ -6,6 +6,11 @@ nodeSelector:
   node-role.credit-scoring/pool: system
 data:
   metadataSecretName: airflow-metadata
+# Миграция БД и создание пользователя — обычные Job, а не helm-хуки: с --wait хук ждёт поды, а поды ждут миграцию
+migrateDatabaseJob:
+  useHelmHooks: false
+createUserJob:
+  useHelmHooks: false
 postgresql:
   enabled: false
 redis:

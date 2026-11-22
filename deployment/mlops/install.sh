@@ -17,7 +17,7 @@ kubectl create namespace "${NAMESPACE}" --dry-run=client -o yaml | kubectl apply
 kubectl -n "${NAMESPACE}" create secret generic mlops-s3 --dry-run=client -o yaml \
   --from-literal=AWS_ACCESS_KEY_ID="${s3_access_key}" --from-literal=AWS_SECRET_ACCESS_KEY="${s3_secret_key}" | kubectl apply -f -
 kubectl -n "${NAMESPACE}" create secret generic mlflow --dry-run=client -o yaml \
-  --from-literal=MLFLOW_BACKEND_URI="postgresql://mlflow:${mlflow_password}@${postgres_host}:5432/mlflow" \
+  --from-literal=MLFLOW_BACKEND_URI="postgresql+psycopg2://mlflow:${mlflow_password}@${postgres_host}:5432/mlflow" \
   --from-literal=AWS_ACCESS_KEY_ID="${s3_access_key}" --from-literal=AWS_SECRET_ACCESS_KEY="${s3_secret_key}" | kubectl apply -f -
 kubectl -n "${NAMESPACE}" create secret generic airflow-metadata --dry-run=client -o yaml \
   --from-literal=connection="postgresql://airflow:${airflow_password}@${postgres_host}:5432/airflow" | kubectl apply -f -

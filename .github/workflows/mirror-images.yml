@@ -1,7 +1,7 @@
 name: mirror-images
 
 # Docker Hub из VK Cloud отдаёт большие образы очень медленно, поэтому сторонние образы копируются в GHCR
-# и кластер скачивает их оттуда. Копируется индекс со всеми архитектурами, без пересборки
+# и кластер скачивает их оттуда (узлы amd64)
 on:
   workflow_dispatch:
   push:
@@ -33,11 +33,12 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      # Образ FROM исходный с меткой source: GHCR привязывает пакет к публичному репозиторию, и он скачивается без ключей
       - name: Copy to GHCR
         run: |
           target="ghcr.io/${{ github.repository }}/mirror/${{ matrix.image }}"
           target="${target/\/library\//\/}"
-          docker buildx imagetools create \
-            --annotation "index:org.opencontainers.image.source=https://github.com/${{ github.repository }}" \
-            --tag "${target}" "docker.io/${{ matrix.image }}"
+          echo "FROM docker.io/${{ matrix.image }}" | docker buildx build --platform linux/amd64 \
+            --label "org.opencontainers.image.source=https://github.com/${{ github.repository }}" \
+            --tag "${target}" --push -
           echo "${target}"

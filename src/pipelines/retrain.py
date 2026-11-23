@@ -7,7 +7,9 @@ import tempfile
 
 import boto3
 import mlflow
+import mlflow.onnx
 import numpy as np
+import onnx
 import onnxruntime as ort
 import pandas as pd
 import redis
@@ -119,9 +121,9 @@ def main():
             mlflow.log_metrics({f"candidate_{k}": v for k, v in candidate.items()})
             if result.get("production"):
                 mlflow.log_metrics({f"production_{k}": v for k, v in result["production"].items() if k != "model_version"})
-            mlflow.log_artifacts(str(args.out_dir))
-            if result["promote"]:
-                mlflow.register_model(f"runs:/{mlflow.active_run().info.run_id}/model.onnx", REGISTERED_MODEL)
+            mlflow.log_artifact(str(args.out_dir / "metrics.json"))
+            # В MLflow 3 в реестр попадает только модель, записанная через log_model, а не просто файл
+            mlflow.onnx.log_model(onnx.load(onnx_path), name="model", registered_model_name=REGISTERED_MODEL if result["promote"] else None)
     if XCOM_PATH.parent.exists():
         XCOM_PATH.write_text(json.dumps(result))
     print(json.dumps(result, indent=2))

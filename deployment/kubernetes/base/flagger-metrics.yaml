@@ -1,4 +1,5 @@
-# Метрики для canary-анализа Flagger. Поды canary называются credit-scoring-api-<hash>, primary — credit-scoring-api-primary-<hash>.
+# Метрики для canary-анализа Flagger. Под canary называется credit-scoring-api-<hash>-<id>, у primary и варианта A/B (api-b)
+# в имени лишний сегмент, поэтому они в выборку не попадают.
 # Пока ответов 5xx не было, такого ряда нет, поэтому числитель дополняется нулём
 apiVersion: flagger.app/v1beta1
 kind: MetricTemplate
@@ -9,8 +10,9 @@ spec:
     type: prometheus
     address: http://kube-prometheus-stack-prometheus.monitoring:9090
   query: |
-    100 * (sum(rate(credit_api_requests_total{namespace="{{ namespace }}", pod!~"{{ target }}-primary-.*", status=~"5.."}[{{ interval }}])) or on() vector(0))
-      / sum(rate(credit_api_requests_total{namespace="{{ namespace }}", pod!~"{{ target }}-primary-.*"}[{{ interval }}]))
+    100 * (sum(rate(credit_api_requests_total{namespace="{{ namespace }}", pod=~"{{ target }}-[a-z0-9]+-[a-z0-9]+", status=~"5.."}[{{ interval }}]))
+      or on() vector(0))
+      / sum(rate(credit_api_requests_total{namespace="{{ namespace }}", pod=~"{{ target }}-[a-z0-9]+-[a-z0-9]+"}[{{ interval }}]))
 ---
 # Доля прогнозов дефолта у новой версии: сломанная модель, которая всем отвечает 0 или 1, не проходит анализ даже без ошибок HTTP
 apiVersion: flagger.app/v1beta1
@@ -22,5 +24,6 @@ spec:
     type: prometheus
     address: http://kube-prometheus-stack-prometheus.monitoring:9090
   query: |
-    (sum(rate(credit_predictions_total{namespace="{{ namespace }}", pod!~"{{ target }}-primary-.*", prediction="1"}[{{ interval }}])) or on() vector(0))
-      / sum(rate(credit_predictions_total{namespace="{{ namespace }}", pod!~"{{ target }}-primary-.*"}[{{ interval }}]))
+    (sum(rate(credit_predictions_total{namespace="{{ namespace }}", pod=~"{{ target }}-[a-z0-9]+-[a-z0-9]+", prediction="1"}[{{ interval }}]))
+      or on() vector(0))
+      / sum(rate(credit_predictions_total{namespace="{{ namespace }}", pod=~"{{ target }}-[a-z0-9]+-[a-z0-9]+"}[{{ interval }}]))

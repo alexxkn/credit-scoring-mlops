@@ -45,6 +45,16 @@ env:
     value: credit-scoring-prod
   - name: S3_ENDPOINT_URL
     value: https://hb.ru-msk.vkcloud-storage.ru
+  # Логи задач пишутся в S3: под воркера KubernetesExecutor удаляется после задачи, и без этого лог в интерфейсе пропадает.
+  # Ключи берутся из переменных AWS_* секрета mlops-s3
+  - name: AIRFLOW__LOGGING__REMOTE_LOGGING
+    value: "True"
+  - name: AIRFLOW__LOGGING__REMOTE_BASE_LOG_FOLDER
+    value: s3://mifirobo-prod-reports/airflow-logs
+  - name: AIRFLOW__LOGGING__REMOTE_LOG_CONN_ID
+    value: s3_logs
+  - name: AIRFLOW_CONN_S3_LOGS
+    value: '{"conn_type": "aws", "extra": {"endpoint_url": "https://hb.ru-msk.vkcloud-storage.ru", "region_name": "ru-msk"}}'
 extraEnvFrom: |
   - secretRef:
       name: mlops-s3

@@ -67,7 +67,8 @@ with sdk.DAG(
     def candidate_is_better(result):
         # Модель не выкатывается, если ONNX не совпал с PyTorch или новая версия хуже production на тех же данных
         print(json.dumps(result, indent=2))
-        return result["promote"]
+        # Значение short_circuit уходит следующей задаче, поэтому возвращаем сам результат, а не флаг
+        return result if result["promote"] else False
 
     @sdk.task
     def deploy_canary(result):

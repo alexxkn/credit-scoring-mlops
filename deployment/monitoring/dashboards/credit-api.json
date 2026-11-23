@@ -67,7 +67,7 @@
    "targets": [
     {
      "refId": "A",
-     "expr": "sum(rate(credit_api_requests_total{namespace=\"$namespace\",status=~\"5..\"}[5m])) / sum(rate(credit_api_requests_total{namespace=\"$namespace\"}[5m]))",
+     "expr": "(sum(rate(credit_api_requests_total{namespace=\"$namespace\",status=~\"5..\"}[5m])) or on() vector(0)) / sum(rate(credit_api_requests_total{namespace=\"$namespace\"}[5m]))",
      "legendFormat": "5xx",
      "datasource": {
       "type": "prometheus",

@@ -1,152 +1,157 @@
-# PD-модель дефолта по кредитным картам
+# Кредитный скоринг: промышленное развёртывание с MLOps-циклом
 
-Пайплайн разработки, проверки, развёртывания и мониторинга модели, которая предсказывает вероятность дефолта клиента в следующем месяце. Данные — Default of Credit Card Clients Dataset (UCI, Kaggle), 30000 клиентов банка на Тайване.
+Итоговый проект курса "Автоматизация процессов доставки и развёртывания моделей машинного обучения". Основа — PD-модель дефолта по кредитным картам из курса "Автоматизация процессов разработки и тестирования моделей машинного обучения" (данные UCI Default of Credit Card Clients, 30000 клиентов). Новая модель — нейросеть в ONNX, сервис работает в Managed Kubernetes VK Cloud, инфраструктура описана в Terraform, выкатка идёт через GitHub Actions, Istio и Flagger, мониторинг на Prometheus, Grafana и Loki, дрифт считает Evidently, переобучение запускает Airflow.
+
+Архитектура и потоки данных: [docs/architecture.md](docs/architecture.md). Реакция на алерты: [docs/runbook.md](docs/runbook.md).
 
 ## Структура
 
 ```text
-credit-scoring-model/
-├── data/
-│   ├── raw/                       # исходный CSV, версионируется DVC
-│   ├── processed/                 # train.csv и test.csv, выход стадии prepare
-│   └── expectations/              # набор правил Great Expectations в JSON
-├── models/                        # обученная модель, выход стадии train
-├── notebooks/
-│   ├── EDA_Кочкин.ipynb           # разведочный анализ, обоснование очистки, признаков и правил валидации
-│   └── Эксперименты_Кочкин.ipynb  # анализ запусков MLflow и проверка лучшей модели
-├── reports/                       # ROC-кривая, скриншот MLflow, отчёт о дрифте
-├── scripts/docker_run.sh          # сборка и запуск Docker-образа, тестовый запрос
+credit-scoring-mlops/
 ├── src/
-│   ├── data/                      # make_dataset.py (загрузка, очистка, разбиение), validation.py (Great Expectations)
-│   ├── features/                  # build_features.py (агрегаты истории платежей, группы возраста)
-│   ├── models/                    # pipeline.py, train.py (подбор гиперпараметров, MLflow), metrics.py, predict.py
-│   ├── api/                       # app.py (FastAPI)
-│   └── monitoring/                # drift.py (PSI)
-├── tests/                         # тесты pytest
-├── .github/workflows/ci-cd.yml
-├── Dockerfile
-├── dvc.yaml, dvc.lock, params.yaml
-├── metrics.json                   # метрики лучшей модели, выход стадии train
-└── requirements.txt, requirements-dev.txt, pyproject.toml, .flake8
+│   ├── data/, features/           # загрузка, очистка, валидация Great Expectations, признаки (из курса 17)
+│   ├── models/                    # nn.py, train_nn.py — нейросеть; onnx_conversion.py, optimize.py, benchmark.py; train.py — модели курса 17
+│   ├── api/                       # FastAPI: app.py, seldon_app.py (протокол Seldon), model_store.py, prediction_log.py (Redis)
+│   ├── monitoring/                # evidently_drift.py — data drift, concept drift, качество по версиям; drift.py — PSI из курса 17
+│   └── pipelines/retrain.py       # переобучение и сравнение с production-моделью
+├── airflow/dags/                  # DAG переобучения и DAG запуска по дрифту
+├── infrastructure/                # Terraform: modules (network, kubernetes, storage, monitoring), environments (staging, production)
+├── deployment/
+│   ├── docker/                    # многостадийные Dockerfile: backend, frontend, trainer, drift, mlflow
+│   ├── kubernetes/                # kustomize: base и overlays staging, production
+│   ├── platform/                  # Istio, Flagger, gateway, права CI
+│   ├── mlops/                     # MLflow и Airflow в кластере
+│   ├── seldon/                    # Seldon Core: operator и SeldonDeployment
+│   └── monitoring/dashboards/     # дашборды Grafana
+├── .github/workflows/             # build-and-test, deploy-staging, deploy-production, canary-release, rollback, mirror-images
+├── scripts/                       # deploy.sh, wait_canary.sh, smoke_test.sh, check_alerts.sh
+├── loadtest/                      # Locust, генератор трафика с дрифтом
+├── reports/                       # бенчмарки, нагрузочный тест, логи демонстраций (reports/demo)
+├── notebooks/                     # EDA и эксперименты курса 17
+├── docs/                          # архитектура, runbook
+└── dvc.yaml, params.yaml          # стадии prepare, train, train_nn, convert_onnx, optimize
 ```
 
-## Установка
+## Этап 1. Модель для продакшена
 
-Используем версию Python >=3.12,<3.15 -- на последних версиях не ставится great_expectations.
+Подробный отчёт: [reports/performance.md](reports/performance.md).
+
+- Нейросеть: MLP 40 → 128 → 64 → 1 на PyTorch (src/models/nn.py). Агрегаты платежей, масштабирование и one-hot находятся внутри графа, поэтому ONNX-модель принимает 23 исходных признака клиента и не нуждается в отдельной предобработке. ROC-AUC на тесте 0.7745, F1 0.525.
+- Конвертация: src/models/onnx_conversion.py экспортирует модель и проверяет её на 6000 строках теста. Расхождение вероятностей с PyTorch 1.2e-07, при расхождении больше 1e-5 скрипт падает вместе со стадией DVC.
+- Оптимизация (src/models/optimize.py): dynamic quantization int8 уменьшает модель в 2 раза и ускоряет батч 1024 на 22% при потере ROC-AUC 0.0014. Pruning 50% весов качество не меняет, но и не ускоряет: ONNX Runtime не пропускает нули в плотных матрицах.
+- Инференс: ONNX Runtime в 5 раз быстрее PyTorch на одиночном запросе. GPU (RTX 3080 Ti) для этой модели медленнее CPU: копирование данных на карту дороже вычислений.
+- Нагрузочный тест API (Locust, 200 пользователей): 1 CPU — 754 запроса/с, 2 CPU — 1362, 4 CPU — 2213. Вывод для продакшена: CPU-узлы, под с 1 vCPU, масштабирование подов через HPA.
 
 ```bash
-python3.12 -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt -r requirements-dev.txt
+dvc repro                                # данные, модели курса 17, нейросеть, ONNX, оптимизация
+python -m src.models.benchmark           # reports/benchmark.md
+./loadtest/run_local.sh 2                # нагрузочный тест образа backend с лимитом 2 CPU
 ```
 
-Исходный файл UCI_Credit_Card.csv с Kaggle лежит в публичном S3-бакете, DVC скачивает его по URL из data/raw/UCI_Credit_Card.csv.dvc:
+## Этап 2. Инфраструктура как код
+
+Terraform, провайдер vkcs, VK Cloud. State хранится в Object Storage (backend s3 с блокировкой use_lockfile).
+
+- modules/network: сеть и подсеть узлов на SDN sprut, роутер с выходом наружу. У узлов нет публичных адресов.
+- modules/kubernetes: Managed Kubernetes 1.35. Группы узлов: app (STD3-4-8, автомасштабирование от 2 до 6) и system (STD3-4-16, от 1 до 2). Группа GPU включается переменной gpu_enabled. Gatekeeper-политики запрещают hostPath и host namespaces (кроме namespace monitoring) и NodePort. Доступ к API кластера ограничивается переменной api_allowed_cidrs.
+- modules/storage: managed PostgreSQL 16 в приватной сети за security group (порт 5432 открыт только из подсети узлов и сети подов), отдельный S3-аккаунт сервисов, приватные бакеты mlflow, models, loki, reports.
+- modules/monitoring: helm-релизы kube-prometheus-stack, Loki, Alloy, Pushgateway, правила алертов, дашборды.
+- environments/production развёрнут. environments/staging собирается из тех же модулей с меньшими размерами и проверяется terraform validate в CI. Staging работает в production-кластере отдельным namespace, второй кластер удвоил бы стоимость.
 
 ```bash
-dvc update data/raw/UCI_Credit_Card.csv.dvc
+./infrastructure/scripts/tf.sh production init
+./infrastructure/scripts/tf.sh production apply
 ```
 
-## Запуск пайплайна
+tf.sh берёт логин VK Cloud, токен Telegram-бота и ключи S3 для state из ~/.config/vkcs/credit-scoring.env, в репозитории секретов нет.
+
+## Этап 3. Контейнеры и Kubernetes
+
+- Образы собираются многостадийно (deployment/docker): backend (FastAPI + ONNX Runtime, около 330 МБ), frontend (сборка на node, работа на nginx-unprivileged), trainer, drift, mlflow.
+- DVC внутри сборки: стадия model выполняет dvc pull и забирает модель нужной версии из S3. Ключи передаются как build secret и не остаются в слоях образа.
+- Манифесты (deployment/kubernetes, kustomize):
+  - Deployment API со стратегией rolling update (maxSurge 1, maxUnavailable 0), пробами, readOnlyRootFilesystem и запуском без root;
+  - HPA по CPU (2–8 подов), PodDisruptionBudget, распределение подов по узлам;
+  - ConfigMap с настройками и Secret с ключами S3 (секрет создаёт CI);
+  - Service, Ingress (staging) и VirtualService (production);
+  - NetworkPolicy: входящий трафик по умолчанию запрещён;
+  - Redis для кеша и журнала предсказаний, CronJob мониторинга дрифта.
+
+## Этап 4. CI/CD
+
+GitHub Actions, цепочка build → test → deploy → monitor:
+
+- build-and-test: линтеры (flake8, black, terraform fmt/validate, kubeconform, shellcheck) на каждый push; тесты, валидация данных, Trivy (зависимости, секреты, ошибки конфигурации) и сборка образов с проверкой Trivy — на pull request и в main. Trivy уже останавливал выкатку из-за критической CVE в пакетах nginx.
+- deploy-staging: выкатка в namespace credit-scoring-staging. Flagger ведёт blue-green с зеркалированием трафика на новую версию, после переключения идут smoke-тесты через Ingress.
+- deploy-production: ручное подтверждение в окружении production, затем canary (10% → 50% трафика шагами по 10%). Этап monitor запускает smoke-тесты и через 5 минут проверяет, что в Prometheus нет критических алертов.
+- canary-release: выкатка новой версии модели из S3 без пересборки образа.
+- rollback: abort прерывает идущую выкатку, version возвращает прежний образ или модель.
+
+Автоматический откат: Flagger на каждом шаге проверяет долю успешных ответов, задержку, долю 5xx по метрикам API и долю прогнозов дефолта. Последняя метрика ловит сломанную модель, которая отвечает без ошибок, но всем одно и то же. Две проваленные проверки подряд возвращают весь трафик на primary.
+
+Секреты репозитория: KUBECONFIG_B64 (токен ServiceAccount ci-deployer с правами только на два namespace), APP_S3_ACCESS_KEY и APP_S3_SECRET_KEY, DVC_AWS_ACCESS_KEY_ID и DVC_AWS_SECRET_ACCESS_KEY. Переменная INGRESS_HOST.
+
+## Этап 5. Мониторинг
+
+- Prometheus собирает метрики API (запросы, задержка, время инференса, прогнозы по версиям модели, кеш), Envoy, узлов и kube-state-metrics.
+- Loki и Alloy собирают JSON-логи подов.
+- Дашборды Grafana: Credit Scoring API, дрифт и качество модели, логи.
+- Алерты: 8 правил Prometheus (недоступность API, 5xx, задержка, рестарты, сдвиг доли дефолтов, data drift, concept drift, остановка мониторинга дрифта) и 2 правила Loki (ошибки в логах, недоступность Redis). Уведомления приходят в Telegram, в каждом есть ссылка на раздел runbook.
+
+## Этап 6. Дрифт и управление моделями
+
+- Журнал: API пишет признаки, вероятность и версию модели каждого запроса в Redis stream. Факт дефолта приходит позже через POST /feedback.
+- CronJob drift-monitor раз в час запускает src/monitoring/evidently_drift.py:
+  - Evidently DataDriftPreset по 23 признакам и по вероятности;
+  - concept drift — падение ROC-AUC на размеченных ответах больше чем на 0.05;
+  - ROC-AUC отдельно по каждой версии модели.
+
+  Метрики уходят в Pushgateway, HTML-отчёт — в S3.
+- A/B-тест через Istio: на хосте ab.* трафик делится 50/50 между nn-v1 и квантованной nn-v1-int8, вариант можно выбрать заголовком x-model-variant.
+- Seldon Core 1.17.1 (deployment/seldon) — одна SeldonDeployment с тремя предикторами: main (nn-v1, 90%), challenger (nn-v1-int8, 10%) и shadow (получает копию всех запросов, его ответы клиенту не уходят).
+- Реестр моделей — MLflow. Версии лежат в S3 (mifirobo-prod-models/<версия>/), текущая production-версия записана в production.json.
+
+## Этап 7. Переобучение и масштабирование
+
+- DAG credit_scoring_retraining (раз в неделю или по триггеру):
+  1. проверка отчёта о дрифте;
+  2. под trainer: обучение на исходных данных и размеченных ответах из журнала, проверка ONNX, сравнение с production-моделью на одних и тех же данных, запись в MLflow;
+  3. если кандидат не лучше production-модели, DAG останавливается;
+  4. иначе меняет MODEL_URI у Deployment, Flagger ведёт canary, после продвижения DAG обновляет production.json.
+- DAG credit_scoring_drift_trigger раз в час читает последний отчёт о дрифте и при дрифте запускает переобучение, не чаще раза в сутки.
+- Масштабирование: HPA подов API, автомасштабирование группы узлов app, кеш предсказаний в Redis (TTL 1 час).
+- Геореплика сведена к распределению подов по узлам (topologySpreadConstraints) и PDB. Standard-кластер VK Cloud ставит все узлы в одну зону, для нескольких зон нужен regional-кластер.
+
+## Развёртывание с нуля
 
 ```bash
-dvc repro
-dvc metrics show
+./infrastructure/scripts/tf.sh production apply      # сеть, кластер, PostgreSQL, бакеты, мониторинг
+./deployment/platform/install.sh                     # Istio, Flagger, gateway, права CI
+AIRFLOW_ADMIN_PASSWORD=... ./deployment/mlops/install.sh   # MLflow, Airflow
 ```
 
-- prepare: проверяет сырые данные набором правил Great Expectations (при нарушении стадия падает), очищает их и делит на train и test 80/20 со стратификацией.
-- train: для пяти алгоритмов подбирает гиперпараметры через RandomizedSearchCV и порог классификации по F1, пишет каждый запуск в MLflow, сохраняет лучшую по ROC-AUC на кросс-валидации модель в models/credit_default_model.pkl и регистрирует её в MLflow как CreditDefaultModel.
+Дальше push в main: CI собирает образы и выкатывает staging, а после подтверждения и production. Seldon ставится после первой выкатки в production: ./deployment/seldon/install.sh.
 
-Параметры разбиения и поиска лежат в params.yaml. На 8 ядрах стадия train идёт около 6 минут.
+Сторонние образы узлы берут из зеркала в GHCR (workflow mirror-images): из VK Cloud образы Docker Hub качаются очень медленно и подвисают.
 
-Просмотр экспериментов:
+## Демонстрация работы
 
-```bash
-mlflow ui --backend-store-uri sqlite:///mlflow.db
-```
+Логи и вывод команд лежат в reports/demo.
 
-## Тесты и проверки
+- Дрифт (drift-baseline.log, drift-shifted.log): 2000 обычных клиентов дрифта не дали (доля сдвинутых признаков 0, ROC-AUC на ответах 0.767 против 0.775 на тесте). Потом пришли 5000 клиентов со сдвигом: лимит ×0.6, просрочка PAY_0 +1, счёт ×1.3, и у 30% клиентов без просрочки факт дефолта подменён. Evidently нашёл ровно три сдвинутых признака (LIMIT_BAL, PAY_0, BILL_AMT1) и дрифт вероятностей, ROC-AUC упал до 0.557. Сработали алерты CreditDataDrift и CreditConceptDrift, уведомления ушли в Telegram.
+- A/B (ab-test.txt): из 200 запросов 110 обработала nn-v1 и 90 — nn-v1-int8, заголовок x-model-variant выбирает вариант.
+- Seldon (seldon.txt): из 200 запросов 183 обработал main и 17 — challenger, shadow получил все 200.
 
-```bash
-flake8 src tests
-black --check src tests
-python -m src.data.validation data/raw/UCI_Credit_Card.csv
-pytest
-```
+## Решения под VK Cloud
 
-GitHub Actions (.github/workflows/ci-cd.yml) запускает flake8 и black при каждом push, валидацию и тесты — для pull request в main или вручную через Run workflow на вкладке Actions. Перед проверками CI скачивает исходный файл через dvc update.
+- Docker Hub и quay из VK Cloud отдают образы медленно, CRI-O качает их по очереди, и зависшее скачивание блокирует всю очередь. Поэтому сторонние образы копируются в GHCR.
+- VK сам увеличил тип мастера, а Terraform пытался вернуть прежний и пересоздавал control plane. master_flavor вынесен в ignore_changes.
+- VK Object Storage не поддерживает PutPublicAccessBlock, бакеты закрыты через ACL private. AWS provider 6.x отправляет пустой LocationConstraint, поэтому используется 5.x.
+- Gatekeeper-политики кластера управляются из Terraform. node-exporter получил исключение для namespace monitoring.
+- MLflow 3.18 по умолчанию запускает исполнитель фоновых задач (+1.6 ГБ памяти), он выключен: проекту он не нужен.
 
-## Docker и API
+## Ограничения
 
-```bash
-./scripts/docker_run.sh
-```
-
-Скрипт собирает образ credit-scoring-api с моделью из models/, запускает контейнер на порту 8000 и отправляет тестовый запрос. Перед этим нужно выполнить dvc repro. Для podman: DOCKER=podman ./scripts/docker_run.sh.
-
-API принимает признаки клиента после очистки: EDUCATION от 1 до 4, MARRIAGE от 1 до 3, статусы PAY_* от -2 до 9. Новые признаки строит сам Pipeline модели.
-
-```bash
-curl -X POST http://127.0.0.1:8000/predict \
-  -H "Content-Type: application/json" \
-  -d '{
-    "LIMIT_BAL": 50000, "SEX": 2, "EDUCATION": 2, "MARRIAGE": 1, "AGE": 30,
-    "PAY_0": 2, "PAY_2": 2, "PAY_3": 0, "PAY_4": 0, "PAY_5": 0, "PAY_6": 0,
-    "BILL_AMT1": 48000, "BILL_AMT2": 47000, "BILL_AMT3": 46000, "BILL_AMT4": 45000, "BILL_AMT5": 44000, "BILL_AMT6": 43000,
-    "PAY_AMT1": 0, "PAY_AMT2": 1500, "PAY_AMT3": 1500, "PAY_AMT4": 1500, "PAY_AMT5": 1500, "PAY_AMT6": 1500
-  }'
-```
-
-Ответ:
-
-```json
-{"default_prediction":1,"default_probability":0.8021588935775353}
-```
-
-default_prediction — класс при подобранном пороге, default_probability — вероятность дефолта. Документация API: http://127.0.0.1:8000/docs.
-
-## Мониторинг дрифта
-
-```bash
-python -m src.monitoring.drift --api-url http://127.0.0.1:8000
-python -m src.monitoring.drift --api-url http://127.0.0.1:8000 --shift
-```
-
-Скрипт берёт 1000 клиентов из тестовой выборки как новые данные, отправляет их в API и считает PSI относительно обучающей выборки: для вероятности дефолта и для LIMIT_BAL, AGE, PAY_0, BILL_AMT1, PAY_AMT1. Флаг --shift искусственно сдвигает данные (лимит ×0.6, просрочка PAY_0 +1, счёт ×1.3), чтобы показать срабатывание. Пороги: PSI меньше 0.1 — нет дрифта, 0.1–0.25 — умеренный, больше 0.25 — значительный. Отчёт сохраняется в reports/drift_report.json.
-
-## Результаты
-
-Данные и валидация (notebooks/EDA_Кочкин.ipynb):
-
-- NaN нет, ID уникален, дефолт у 22.1% клиентов.
-- Коды EDUCATION 0 (не описан) и 5, 6 (unknown) объединены с категорией 4, код MARRIAGE 0 — с категорией 3.
-- Набор правил Great Expectations — 71 проверка: состав и типы столбцов, NaN, уникальность ID, диапазоны LIMIT_BAL, AGE, PAY_*, PAY_AMT*, допустимые коды категорий и целевой переменной.
-- Новые признаки PAY_DELAY_MONTHS и PAY_MAX связаны с дефолтом сильнее исходного PAY_0 (корреляция Спирмена 0.388 и 0.321 против 0.292), группа возраста показывает U-образную зависимость риска от возраста.
-
-Эксперименты (notebooks/Эксперименты_Кочкин.ipynb), 5 запусков в MLflow:
-
-| модель | ROC-AUC CV | ROC-AUC test | precision | recall | F1 |
-|---|---|---|---|---|---|
-| random_forest | 0.7859 | 0.7795 | 0.5295 | 0.5539 | 0.5414 |
-| hist_gradient_boosting | 0.7851 | 0.7795 | 0.5160 | 0.5599 | 0.5370 |
-| gradient_boosting | 0.7842 | 0.7854 | 0.5306 | 0.5622 | 0.5459 |
-| extra_trees | 0.7827 | 0.7752 | 0.5221 | 0.5433 | 0.5325 |
-| logistic_regression | 0.7601 | 0.7471 | 0.4747 | 0.5592 | 0.5135 |
-
-Модель выбирается по ROC-AUC на кросс-валидации, тестовая выборка в выборе не участвует. Лучшая модель — случайный лес. Ансамбли отличаются меньше чем на 0.004, логистическая регрессия отстаёт на 0.026.
-
-![ROC-кривая](reports/roc_curve.png)
-
-![Запуски в MLflow](reports/mlflow_runs.png)
-
-Дрифт на 1000 клиентах из тестовой выборки:
-
-| | без сдвига | с --shift |
-|---|---|---|
-| default_probability | 0.0063 | 0.8137 |
-| LIMIT_BAL | 0.0080 | 0.8009 |
-| AGE | 0.0121 | 0.0121 |
-| PAY_0 | 0.0044 | 1.1553 |
-| BILL_AMT1 | 0.0055 | 0.0461 |
-| PAY_AMT1 | 0.0091 | 0.0091 |
-
-Ограничение: лучшая модель обучена с class_weight=balanced, поэтому её вероятности завышены относительно реальной доли дефолтов (средняя вероятность на новых данных 0.420 при доле дефолтов 0.212). Для ранжирования клиентов и классификации это не мешает. Если PD нужна как калиброванная вероятность, модель нужно дополнительно калибровать.
+- GPU-группа узлов описана, но не создавалась. GPU-бенчмарк снят на локальной RTX 3080 Ti, и GPU этой модели не нужен.
+- Staging — namespace в production-кластере, а не отдельный кластер.
+- Кластер standard, в одной зоне доступности.

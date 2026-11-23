@@ -1,3 +1,4 @@
+import os
 import pathlib
 import random
 
@@ -7,7 +8,9 @@ import pandas as pd
 import src.features.schema as schema
 
 DATA_PATH = pathlib.Path(__file__).resolve().parent.parent / "data" / "processed" / "test.csv"
-CLIENTS = pd.read_csv(DATA_PATH)[schema.INPUT_FEATURES].to_dict(orient="records")
+CLIENTS = pd.read_csv(os.environ.get("CLIENTS_PATH", DATA_PATH))[schema.INPUT_FEATURES].to_dict(orient="records")
+# В кластере тест идёт через ingress gateway Istio, маршрут выбирается по заголовку Host
+HEADERS = {"Host": os.environ["HOST_HEADER"]} if os.environ.get("HOST_HEADER") else {}
 
 
 class ApiUser(locust.FastHttpUser):
@@ -15,8 +18,8 @@ class ApiUser(locust.FastHttpUser):
 
     @locust.task(9)
     def predict(self):
-        self.client.post("/predict", json=random.choice(CLIENTS))
+        self.client.post("/predict", json=random.choice(CLIENTS), headers=HEADERS)
 
     @locust.task(1)
     def predict_batch(self):
-        self.client.post("/predict/batch", json=random.sample(CLIENTS, 100), name="/predict/batch")
+        self.client.post("/predict/batch", json=random.sample(CLIENTS, 100), headers=HEADERS, name="/predict/batch")

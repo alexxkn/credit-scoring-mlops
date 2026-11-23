@@ -26,6 +26,8 @@ jobs:
           - nginxinc/nginx-unprivileged:1.29-alpine
           - istio/proxyv2:1.30.8
           - istio/pilot:1.30.8
+          - seldonio/seldon-core-operator:1.17.1
+          - seldonio/seldon-core-executor:1.17.1
     steps:
       - uses: docker/setup-buildx-action@v4
 

@@ -9,6 +9,7 @@ import torch
 
 import src.api.app as app_module
 import src.api.prediction_log as prediction_log
+import src.api.seldon_app as seldon_app
 import src.api.settings as settings
 import src.data.make_dataset as make_dataset
 import src.features.build_features as build_features
@@ -112,14 +113,23 @@ def test_feedback_without_redis(client):
     assert client.post("/feedback", json={"request_id": "x", "actual": 0}).status_code == 503
 
 
-def test_seldon_protocol(client, client_row):
+@pytest.fixture
+def seldon_client(onnx_model, monkeypatch):
+    monkeypatch.setattr(settings, "MODEL_PATH", str(onnx_model / "model.onnx"))
+    monkeypatch.setattr(settings, "MODEL_META_PATH", str(onnx_model / "metrics.json"))
+    monkeypatch.setattr(settings, "REDIS_URL", "")
+    with fastapi.testclient.TestClient(seldon_app.app) as test_client:
+        yield test_client
+
+
+def test_seldon_protocol(seldon_client, client_row):
     body = {"data": {"names": list(client_row), "ndarray": [list(client_row.values())]}}
-    response = client.post("/api/v1.0/predictions", json=body)
+    response = seldon_client.post("/predict", json=body)
     assert response.status_code == 200
     probability, label = response.json()["data"]["ndarray"][0]
     assert 0 <= probability <= 1 and label in (0, 1)
 
 
-def test_seldon_protocol_rejects_invalid(client, client_row):
+def test_seldon_protocol_rejects_invalid(seldon_client, client_row):
     body = {"data": {"names": list(client_row), "ndarray": [list((client_row | {"AGE": 10}).values())]}}
-    assert client.post("/api/v1.0/predictions", json=body).status_code == 422
+    assert seldon_client.post("/predict", json=body).status_code == 422

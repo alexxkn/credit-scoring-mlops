@@ -1,0 +1,15 @@
+# Seldon Core v1.17.1 — последняя версия под Apache 2.0. Образы из зеркала в GHCR, маршруты через Istio
+image:
+  registry: ghcr.io
+  repository: alexxkn/credit-scoring-mlops/mirror/seldonio/seldon-core-operator
+  tag: 1.17.1
+executor:
+  image:
+    registry: ghcr.io
+    repository: alexxkn/credit-scoring-mlops/mirror/seldonio/seldon-core-executor
+    tag: 1.17.1
+istio:
+  enabled: true
+  gateway: istio-ingress/public-gateway
+usageMetrics:
+  enabled: false

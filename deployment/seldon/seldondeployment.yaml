@@ -1,0 +1,115 @@
+# Управление версиями модели через Seldon Core: три предиктора одного графа.
+#  main      — production-модель nn-v1, 90% трафика;
+#  challenger — квантованная nn-v1-int8, 10% трафика (A/B внутри Seldon);
+#  shadow    — кандидат получает копию всех запросов, его ответы клиенту не уходят.
+# Каждый предиктор — тот же образ backend, микросервис Seldon на порту 9000, модель из S3 по MODEL_URI
+apiVersion: machinelearning.seldon.io/v1
+kind: SeldonDeployment
+metadata:
+  name: credit-scoring
+  namespace: credit-scoring-prod
+spec:
+  protocol: seldon
+  predictors:
+    - name: main
+      traffic: 90
+      replicas: 1
+      graph: &graph
+        name: classifier
+        type: MODEL
+        endpoint:
+          type: REST
+      componentSpecs:
+        - spec: &spec
+            nodeSelector:
+              node-role.credit-scoring/pool: app
+            containers:
+              - name: classifier
+                image: ghcr.io/alexxkn/credit-scoring-mlops/backend:latest
+                command: [uvicorn, src.api.seldon_app:app, --host, 0.0.0.0, --port, "9000", --no-access-log]
+                envFrom:
+                  - secretRef:
+                      name: credit-scoring-secrets
+                env:
+                  - name: MODEL_URI
+                    value: s3://mifirobo-prod-models/nn-v1
+                  - name: MODEL_VERSION
+                    value: nn-v1
+                resources:
+                  requests: {cpu: 100m, memory: 256Mi}
+                  limits: {memory: 512Mi}
+    - name: challenger
+      traffic: 10
+      replicas: 1
+      graph: *graph
+      componentSpecs:
+        - spec:
+            nodeSelector:
+              node-role.credit-scoring/pool: app
+            containers:
+              - name: classifier
+                image: ghcr.io/alexxkn/credit-scoring-mlops/backend:latest
+                command: [uvicorn, src.api.seldon_app:app, --host, 0.0.0.0, --port, "9000", --no-access-log]
+                envFrom:
+                  - secretRef:
+                      name: credit-scoring-secrets
+                env:
+                  - name: MODEL_URI
+                    value: s3://mifirobo-prod-models/nn-v1-int8
+                  - name: MODEL_VERSION
+                    value: nn-v1-int8
+                resources:
+                  requests: {cpu: 100m, memory: 256Mi}
+                  limits: {memory: 512Mi}
+    - name: shadow
+      shadow: true
+      replicas: 1
+      graph: *graph
+      componentSpecs:
+        - spec:
+            nodeSelector:
+              node-role.credit-scoring/pool: app
+            containers:
+              - name: classifier
+                image: ghcr.io/alexxkn/credit-scoring-mlops/backend:latest
+                command: [uvicorn, src.api.seldon_app:app, --host, 0.0.0.0, --port, "9000", --no-access-log]
+                envFrom:
+                  - secretRef:
+                      name: credit-scoring-secrets
+                env:
+                  - name: MODEL_URI
+                    value: s3://mifirobo-prod-models/nn-v1
+                  - name: MODEL_VERSION
+                    value: nn-v1-shadow
+                resources:
+                  requests: {cpu: 100m, memory: 256Mi}
+                  limits: {memory: 512Mi}
+---
+# В namespace по умолчанию запрещён входящий трафик: предикторы Seldon принимают его от шлюза Istio и Prometheus
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: seldon-ingress
+  namespace: credit-scoring-prod
+spec:
+  podSelector:
+    matchExpressions:
+      - key: seldon-deployment-id
+        operator: Exists
+  policyTypes: [Ingress]
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: istio-ingress
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: monitoring
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: seldon-system
+      ports:
+        - port: 8000
+        - port: 9000
+        - port: 15090
+        - port: 15020

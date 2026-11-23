@@ -169,30 +169,6 @@ def feedback(data: Feedback, request: fastapi.Request):
     return {"status": "stored"}
 
 
-class SeldonData(pydantic.BaseModel):
-    names: list[str] | None = None
-    ndarray: list[list[float]]
-
-
-class SeldonRequest(pydantic.BaseModel):
-    data: SeldonData
-
-
-@app.post("/api/v1.0/predictions")
-def seldon_predict(body: SeldonRequest, request: fastapi.Request):
-    """Протокол Seldon Core v1: этим же образом обслуживаются предикторы SeldonDeployment (A/B и shadow)."""
-    names = body.data.names or list(ClientData.model_fields)
-    try:
-        records = [ClientData(**dict(zip(names, row))).model_dump() for row in body.data.ndarray]
-    except pydantic.ValidationError as error:
-        raise fastapi.HTTPException(status_code=422, detail=error.errors(include_url=False, include_context=False))
-    predictions = predict_records(request.app.state, records)
-    return {
-        "data": {"names": ["default_probability", "default_prediction"], "ndarray": [[p.default_probability, p.default_prediction] for p in predictions]},
-        "meta": {"tags": {"model_version": request.app.state.model.version}},
-    }
-
-
 @app.get("/metrics")
 def metrics():
     return fastapi.Response(prometheus_client.generate_latest(), media_type=prometheus_client.CONTENT_TYPE_LATEST)

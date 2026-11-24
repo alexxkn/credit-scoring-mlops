@@ -10,7 +10,8 @@ import src.features.schema as schema
 DATA_PATH = pathlib.Path(__file__).resolve().parent.parent / "data" / "processed" / "test.csv"
 CLIENTS = pd.read_csv(os.environ.get("CLIENTS_PATH", DATA_PATH))[schema.INPUT_FEATURES].to_dict(orient="records")
 # В кластере тест идёт через ingress gateway Istio, маршрут выбирается по заголовку Host
-HEADERS = {"Host": os.environ["HOST_HEADER"]} if os.environ.get("HOST_HEADER") else {}
+# Нагрузочный трафик не пишется в журнал мониторинга дрифта
+HEADERS = {"X-Synthetic": "locust"} | ({"Host": os.environ["HOST_HEADER"]} if os.environ.get("HOST_HEADER") else {})
 
 
 class ApiUser(locust.FastHttpUser):

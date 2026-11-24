@@ -109,7 +109,7 @@ async def observe(request, call_next):
     return response
 
 
-def predict_records(app_state, records):
+def predict_records(app_state, records, journal=True):
     model, log = app_state.model, app_state.log
     probabilities = [log.get(model.version, record) for record in records]
     CACHE.labels("hit").inc(sum(p is not None for p in probabilities))
@@ -127,7 +127,8 @@ def predict_records(app_state, records):
         label = int(probability >= model.threshold)
         PREDICTIONS.labels(model.version, str(label)).inc()
         PROBABILITY.labels(model.version).observe(probability)
-        log.append(request_id, model.version, record, probability)
+        if journal:
+            log.append(request_id, model.version, record, probability)
         results.append(Prediction(request_id=request_id, default_prediction=label, default_probability=probability, model_version=model.version))
     return results
 
@@ -150,16 +151,21 @@ def ready(request: fastapi.Request):
     return {"status": "ready", "model_version": request.app.state.model.version}
 
 
+def is_real_traffic(request):
+    # Проверки Flagger и нагрузочные тесты шлют одинаковых клиентов: в журнале дрифта они дали бы ложный дрифт и лишнее переобучение
+    return "x-synthetic" not in request.headers
+
+
 @app.post("/predict", response_model=Prediction)
 def predict(data: ClientData, request: fastapi.Request):
-    return predict_records(request.app.state, [data.model_dump()])[0]
+    return predict_records(request.app.state, [data.model_dump()], is_real_traffic(request))[0]
 
 
 @app.post("/predict/batch", response_model=list[Prediction])
 def predict_batch(data: list[ClientData], request: fastapi.Request):
     if len(data) > 1000:
         raise fastapi.HTTPException(status_code=413, detail="не больше 1000 клиентов за запрос")
-    return predict_records(request.app.state, [item.model_dump() for item in data])
+    return predict_records(request.app.state, [item.model_dump() for item in data], is_real_traffic(request))
 
 
 @app.post("/feedback")

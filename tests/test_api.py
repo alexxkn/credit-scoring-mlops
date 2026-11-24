@@ -103,6 +103,12 @@ def test_cache_and_prediction_stream(redis_client, client_row):
     assert prometheus_client.REGISTRY.get_sample_value("credit_cache_requests_total", {"result": "hit"}) == hits_before + 1
 
 
+def test_synthetic_traffic_not_in_stream(redis_client, client_row):
+    response = redis_client.post("/predict", json=client_row, headers={"X-Synthetic": "flagger"})
+    assert response.status_code == 200
+    assert redis_client.app.state.log.client.xrange(settings.PREDICTION_STREAM) == []
+
+
 def test_feedback(redis_client, client_row):
     request_id = redis_client.post("/predict", json=client_row).json()["request_id"]
     assert redis_client.post("/feedback", json={"request_id": request_id, "actual": 1}).status_code == 200

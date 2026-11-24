@@ -28,9 +28,11 @@ logger = logging.getLogger("credit_api")
 
 REQUESTS = prometheus_client.Counter("credit_api_requests_total", "HTTP-запросы к API", ["method", "path", "status"])
 LATENCY = prometheus_client.Histogram(
-    "credit_api_request_duration_seconds", "Время обработки запроса", ["path"], buckets=(0.001, 0.0025, 0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1)
+    "credit_api_request_duration_seconds", "Время обработки запроса", ["path"], buckets=(0.001, 0.0025, 0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10)
 )
-INFERENCE = prometheus_client.Histogram("credit_model_inference_seconds", "Время инференса ONNX", buckets=(0.0001, 0.00025, 0.0005, 0.001, 0.0025, 0.005, 0.01))
+INFERENCE = prometheus_client.Histogram(
+    "credit_model_inference_seconds", "Время инференса ONNX", buckets=(0.0001, 0.00025, 0.0005, 0.001, 0.0025, 0.005, 0.01, 0.025, 0.05, 0.1)
+)
 PREDICTIONS = prometheus_client.Counter("credit_predictions_total", "Предсказания по классам", ["model_version", "prediction"])
 PROBABILITY = prometheus_client.Histogram(
     "credit_prediction_probability", "Распределение вероятности дефолта", ["model_version"], buckets=[i / 10 for i in range(1, 11)]

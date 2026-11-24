@@ -1,0 +1,41 @@
+
+[notice] A new release of pip is available: 25.0.1 -> 26.3
+[notice] To update, run: pip install --upgrade pip
+[2026-11-24 11:25:15,820] cluster-loadtest-ndhhk/INFO/locust.main: Starting Locust 2.47.0
+[2026-11-24 11:25:15,887] cluster-loadtest-ndhhk/INFO/locust.runners: cluster-loadtest-ndhhk_4a531c5ca3c84b36aea441854b60b60f (index 0) reported as ready. 1 workers connected.
+[2026-11-24 11:25:15,887] cluster-loadtest-ndhhk/INFO/locust.runners: cluster-loadtest-ndhhk_a7bd83db8a0e488eb152760e5a9f24ba (index 1) reported as ready. 2 workers connected.
+[2026-11-24 11:25:15,891] cluster-loadtest-ndhhk/INFO/locust.runners: cluster-loadtest-ndhhk_e79eec9141c748a48dca283c5ae2820f (index 2) reported as ready. 3 workers connected.
+[2026-11-24 11:25:16,882] cluster-loadtest-ndhhk/INFO/locust.main: Run time limit set to 600 seconds
+[2026-11-24 11:25:16,883] cluster-loadtest-ndhhk/INFO/locust.runners: Sending spawn jobs of 400 users at 20.00 spawn rate to 3 ready workers
+[2026-11-24 11:25:36,264] cluster-loadtest-ndhhk/INFO/locust.runners: All users spawned: {"ApiUser": 400} (400 total users)
+[2026-11-24 11:35:16,883] cluster-loadtest-ndhhk/INFO/locust.main: --run-time limit reached, shutting down
+[2026-11-24 11:35:16,883] cluster-loadtest-ndhhk/INFO/locust.runners: Got quit message from master, shutting down...
+[2026-11-24 11:35:16,883] cluster-loadtest-ndhhk/INFO/locust.runners: Got quit message from master, shutting down...
+[2026-11-24 11:35:16,885] cluster-loadtest-ndhhk/INFO/locust.runners: Got quit message from master, shutting down...
+[2026-11-24 11:35:16,962] cluster-loadtest-ndhhk/INFO/locust.main: Shutting down (exit code 0)
+[2026-11-24 11:35:16,962] cluster-loadtest-ndhhk/INFO/locust.runners: Worker 'cluster-loadtest-ndhhk_e79eec9141c748a48dca283c5ae2820f' (index 2) quit. 0 workers ready.
+[2026-11-24 11:35:16,963] cluster-loadtest-ndhhk/INFO/locust.runners: Worker 'cluster-loadtest-ndhhk_a7bd83db8a0e488eb152760e5a9f24ba' (index 1) quit. 0 workers ready.
+[2026-11-24 11:35:16,963] cluster-loadtest-ndhhk/INFO/locust.main: Shutting down (exit code 0)
+[2026-11-24 11:35:16,969] cluster-loadtest-ndhhk/INFO/locust.main: Shutting down (exit code 0)
+[2026-11-24 11:35:16,969] cluster-loadtest-ndhhk/INFO/locust.runners: Worker 'cluster-loadtest-ndhhk_4a531c5ca3c84b36aea441854b60b60f' (index 0) quit. 0 workers ready.
+[2026-11-24 11:35:16,969] cluster-loadtest-ndhhk/INFO/locust.runners: The last worker quit, stopping test.
+[2026-11-24 11:35:17,885] cluster-loadtest-ndhhk/INFO/locust.main: Shutting down (exit code 0)
+Type     Name                                                                          # reqs      # fails |    Avg     Min     Max    Med |   req/s  failures/s
+--------|----------------------------------------------------------------------------|-------|-------------|-------|-------|-------|-------|--------|-----------
+POST     /predict                                                                      462200     0(0.00%) |    455       9    1930    430 |  770.24        0.00
+POST     /predict/batch                                                                 51735     0(0.00%) |    486      38    1906    460 |   86.21        0.00
+--------|----------------------------------------------------------------------------|-------|-------------|-------|-------|-------|-------|--------|-----------
+         Aggregated                                                                    513935     0(0.00%) |    458       9    1930    430 |  856.46        0.00
+
+Response time percentiles (approximated)
+Type     Name                                                                                  50%    66%    75%    80%    90%    95%    98%    99%  99.9% 99.99%   100% # reqs
+--------|--------------------------------------------------------------------------------|--------|------|------|------|------|------|------|------|------|------|------|------
+POST     /predict                                                                              430    500    550    580    690    800    950   1100   1400   1700   1900 462200
+POST     /predict/batch                                                                        460    530    580    620    730    840   1000   1100   1600   1800   1900  51735
+--------|--------------------------------------------------------------------------------|--------|------|------|------|------|------|------|------|------|------|------|------
+         Aggregated                                                                            430    500    550    590    690    800    950   1100   1400   1700   1900 513935
+
+Type,Name,Request Count,Failure Count,Median Response Time,Average Response Time,Min Response Time,Max Response Time,Average Content Size,Requests/s,Failures/s,50%,66%,75%,80%,90%,95%,98%,99%,99.9%,99.99%,100%
+POST,/predict,462200,0,430,455.73281570079246,9.176530002150685,1930.5513659783173,151.6643314582432,770.241968456614,0.0,430,500,550,580,690,800,950,1100,1400,1700,1900
+POST,/predict/batch,51735,0,460,486.09901927888126,38.71934799826704,1906.4585420128424,15267.372823040494,86.2147733407679,0.0,460,530,580,620,730,840,1000,1100,1600,1800,1900
+,Aggregated,513935,0,430,458.7896138213962,9.176530002150685,1930.5513659783173,1673.279280453754,856.4567417973819,0.0,430,500,550,590,690,800,950,1100,1400,1700,1900

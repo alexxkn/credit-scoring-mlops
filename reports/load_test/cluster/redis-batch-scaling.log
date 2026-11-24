@@ -1,0 +1,119 @@
+14:25:10
+credit-scoring-api-primary   Deployment/credit-scoring-api-primary   cpu: 0%/60%   2     8     2     30h
+credit-scoring-prod-app-0      Ready   <none>   41h     v1.35.9
+credit-scoring-prod-app-1      Ready   <none>   9m16s   v1.35.9
+credit-scoring-prod-app-2      Ready   <none>   28h     v1.35.9
+credit-scoring-prod-app-3      Ready   <none>   6m33s   v1.35.9
+credit-scoring-prod-system-0   Ready   <none>   39h     v1.35.9
+14:25:40
+credit-scoring-api-primary   Deployment/credit-scoring-api-primary   cpu: 63%/60%   2     8     2     30h
+credit-scoring-prod-app-0      Ready   <none>   41h     v1.35.9
+credit-scoring-prod-app-1      Ready   <none>   9m46s   v1.35.9
+credit-scoring-prod-app-2      Ready   <none>   28h     v1.35.9
+credit-scoring-prod-app-3      Ready   <none>   7m3s    v1.35.9
+credit-scoring-prod-system-0   Ready   <none>   39h     v1.35.9
+14:26:10
+credit-scoring-api-primary   Deployment/credit-scoring-api-primary   cpu: 156%/60%   2     8     5     30h
+credit-scoring-prod-app-0      Ready   <none>   41h     v1.35.9
+credit-scoring-prod-app-1      Ready   <none>   10m     v1.35.9
+credit-scoring-prod-app-2      Ready   <none>   28h     v1.35.9
+credit-scoring-prod-app-3      Ready   <none>   7m33s   v1.35.9
+credit-scoring-prod-system-0   Ready   <none>   39h     v1.35.9
+14:26:40
+credit-scoring-api-primary   Deployment/credit-scoring-api-primary   cpu: 97%/60%   2     8     5     30h
+credit-scoring-prod-app-0      Ready   <none>   41h   v1.35.9
+credit-scoring-prod-app-1      Ready   <none>   10m   v1.35.9
+credit-scoring-prod-system-0   Ready   <none>   39h   v1.35.9
+14:27:10
+credit-scoring-api-primary   Deployment/credit-scoring-api-primary   cpu: 105%/60%   2     8     8     30h
+credit-scoring-prod-app-0      Ready   <none>   41h   v1.35.9
+credit-scoring-prod-app-1      Ready   <none>   11m   v1.35.9
+credit-scoring-prod-system-0   Ready   <none>   39h   v1.35.9
+14:27:41
+credit-scoring-api-primary   Deployment/credit-scoring-api-primary   cpu: 111%/60%   2     8     8     30h
+credit-scoring-prod-app-0      Ready   <none>   41h   v1.35.9
+credit-scoring-prod-app-1      Ready   <none>   11m   v1.35.9
+credit-scoring-prod-system-0   Ready   <none>   39h   v1.35.9
+14:28:11
+credit-scoring-api-primary   Deployment/credit-scoring-api-primary   cpu: 115%/60%   2     8     8     30h
+credit-scoring-prod-app-0      Ready   <none>   41h   v1.35.9
+credit-scoring-prod-app-1      Ready   <none>   12m   v1.35.9
+credit-scoring-prod-system-0   Ready   <none>   39h   v1.35.9
+14:28:41
+credit-scoring-api-primary   Deployment/credit-scoring-api-primary   cpu: 117%/60%   2     8     8     30h
+credit-scoring-prod-app-0      Ready   <none>   41h   v1.35.9
+credit-scoring-prod-app-1      Ready   <none>   12m   v1.35.9
+credit-scoring-prod-system-0   Ready   <none>   39h   v1.35.9
+14:29:11
+credit-scoring-api-primary   Deployment/credit-scoring-api-primary   cpu: 119%/60%   2     8     8     30h
+credit-scoring-prod-app-0      Ready   <none>   41h   v1.35.9
+credit-scoring-prod-app-1      Ready   <none>   13m   v1.35.9
+credit-scoring-prod-system-0   Ready   <none>   39h   v1.35.9
+14:29:42
+credit-scoring-api-primary   Deployment/credit-scoring-api-primary   cpu: 117%/60%   2     8     8     30h
+credit-scoring-prod-app-0      Ready   <none>   41h   v1.35.9
+credit-scoring-prod-app-1      Ready   <none>   13m   v1.35.9
+credit-scoring-prod-system-0   Ready   <none>   39h   v1.35.9
+14:30:12
+credit-scoring-api-primary   Deployment/credit-scoring-api-primary   cpu: 119%/60%   2     8     8     30h
+credit-scoring-prod-app-0      Ready   <none>   41h   v1.35.9
+credit-scoring-prod-app-1      Ready   <none>   14m   v1.35.9
+credit-scoring-prod-system-0   Ready   <none>   39h   v1.35.9
+14:30:42
+credit-scoring-api-primary   Deployment/credit-scoring-api-primary   cpu: 117%/60%   2     8     8     30h
+credit-scoring-prod-app-0      Ready   <none>   41h   v1.35.9
+credit-scoring-prod-app-1      Ready   <none>   14m   v1.35.9
+credit-scoring-prod-system-0   Ready   <none>   39h   v1.35.9
+14:31:12
+credit-scoring-api-primary   Deployment/credit-scoring-api-primary   cpu: 115%/60%   2     8     8     30h
+credit-scoring-prod-app-0      Ready   <none>   41h   v1.35.9
+credit-scoring-prod-app-1      Ready   <none>   15m   v1.35.9
+credit-scoring-prod-system-0   Ready   <none>   39h   v1.35.9
+14:31:42
+credit-scoring-api-primary   Deployment/credit-scoring-api-primary   cpu: 115%/60%   2     8     8     30h
+credit-scoring-prod-app-0      Ready   <none>   41h   v1.35.9
+credit-scoring-prod-app-1      Ready   <none>   15m   v1.35.9
+credit-scoring-prod-app-4      Ready   <none>   7s    v1.35.9
+credit-scoring-prod-system-0   Ready   <none>   39h   v1.35.9
+14:32:13
+credit-scoring-api-primary   Deployment/credit-scoring-api-primary   cpu: 115%/60%   2     8     8     30h
+credit-scoring-prod-app-0      Ready   <none>   41h   v1.35.9
+credit-scoring-prod-app-1      Ready   <none>   16m   v1.35.9
+credit-scoring-prod-app-4      Ready   <none>   38s   v1.35.9
+credit-scoring-prod-system-0   Ready   <none>   39h   v1.35.9
+14:32:43
+credit-scoring-api-primary   Deployment/credit-scoring-api-primary   cpu: 113%/60%   2     8     8     30h
+credit-scoring-prod-app-0      Ready   <none>   41h   v1.35.9
+credit-scoring-prod-app-1      Ready   <none>   16m   v1.35.9
+credit-scoring-prod-app-4      Ready   <none>   68s   v1.35.9
+credit-scoring-prod-system-0   Ready   <none>   39h   v1.35.9
+14:33:13
+credit-scoring-api-primary   Deployment/credit-scoring-api-primary   cpu: 115%/60%   2     8     8     30h
+credit-scoring-prod-app-0      Ready   <none>   41h   v1.35.9
+credit-scoring-prod-app-1      Ready   <none>   17m   v1.35.9
+credit-scoring-prod-app-4      Ready   <none>   98s   v1.35.9
+credit-scoring-prod-system-0   Ready   <none>   39h   v1.35.9
+14:33:43
+credit-scoring-api-primary   Deployment/credit-scoring-api-primary   cpu: 118%/60%   2     8     8     30h
+credit-scoring-prod-app-0      Ready   <none>   41h    v1.35.9
+credit-scoring-prod-app-1      Ready   <none>   17m    v1.35.9
+credit-scoring-prod-app-4      Ready   <none>   2m8s   v1.35.9
+credit-scoring-prod-system-0   Ready   <none>   39h    v1.35.9
+14:34:13
+credit-scoring-api-primary   Deployment/credit-scoring-api-primary   cpu: 114%/60%   2     8     8     30h
+credit-scoring-prod-app-0      Ready   <none>   41h     v1.35.9
+credit-scoring-prod-app-1      Ready   <none>   18m     v1.35.9
+credit-scoring-prod-app-4      Ready   <none>   2m39s   v1.35.9
+credit-scoring-prod-system-0   Ready   <none>   39h     v1.35.9
+14:34:44
+credit-scoring-api-primary   Deployment/credit-scoring-api-primary   cpu: 115%/60%   2     8     8     30h
+credit-scoring-prod-app-0      Ready   <none>   41h    v1.35.9
+credit-scoring-prod-app-1      Ready   <none>   18m    v1.35.9
+credit-scoring-prod-app-4      Ready   <none>   3m9s   v1.35.9
+credit-scoring-prod-system-0   Ready   <none>   39h    v1.35.9
+14:35:14
+credit-scoring-api-primary   Deployment/credit-scoring-api-primary   cpu: 119%/60%   2     8     8     30h
+credit-scoring-prod-app-0      Ready   <none>   41h     v1.35.9
+credit-scoring-prod-app-1      Ready   <none>   19m     v1.35.9
+credit-scoring-prod-app-4      Ready   <none>   3m39s   v1.35.9
+credit-scoring-prod-system-0   Ready   <none>   39h     v1.35.9

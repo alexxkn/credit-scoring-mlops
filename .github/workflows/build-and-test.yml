@@ -1,11 +1,13 @@
 name: build-and-test
 
 # Линтеры на каждый push. Тесты, сборка и сканирование — на pull request в main, на merge в main и вручную.
-# Образы из main получают тег sha коммита и latest, с них стартует deploy-staging
+# Образы из main получают тег sha коммита и latest, с них стартует deploy-staging. Правка только документации и отчётов сборку не запускает
 on:
   push:
+    paths-ignore: ["**.md", "docs/**", "reports/**"]
   pull_request:
     branches: [main]
+    paths-ignore: ["**.md", "docs/**", "reports/**"]
   workflow_dispatch:
 
 permissions:

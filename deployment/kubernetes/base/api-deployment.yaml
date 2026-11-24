@@ -21,6 +21,9 @@ spec:
       labels:
         app: credit-scoring-api
         version: stable
+      annotations:
+        # Порт метрик не идёт через sidecar: опросы Prometheus не должны попадать в метрики запросов Istio
+        traffic.sidecar.istio.io/excludeInboundPorts: "9090"
     spec:
       automountServiceAccountToken: false
       securityContext:
@@ -43,6 +46,8 @@ spec:
           ports:
             - name: http
               containerPort: 8000
+            - name: metrics
+              containerPort: 9090
           envFrom:
             - configMapRef:
                 name: credit-scoring-config

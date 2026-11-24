@@ -34,6 +34,7 @@ spec:
               app: loadtester
       ports:
         - port: 8000
+        - port: 9090
         - port: 15090
         - port: 15020
 ---

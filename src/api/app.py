@@ -46,6 +46,8 @@ async def lifespan(app):
     app.state.model = model_store.load()
     app.state.log = prediction_log.PredictionLog(settings.REDIS_URL)
     MODEL_INFO.labels(app.state.model.version).set(1)
+    if settings.METRICS_PORT:
+        prometheus_client.start_http_server(settings.METRICS_PORT)
     logger.info("model loaded", extra={"extra_fields": {"model_version": app.state.model.version, "threshold": app.state.model.threshold}})
     yield
 

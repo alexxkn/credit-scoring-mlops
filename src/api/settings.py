@@ -12,3 +12,5 @@ PREDICTION_STREAM = os.environ.get("PREDICTION_STREAM", "predictions")
 PREDICTION_STREAM_MAXLEN = int(os.environ.get("PREDICTION_STREAM_MAXLEN", "200000"))
 ORT_THREADS = int(os.environ.get("ORT_THREADS", "1"))
 LOG_LEVEL = os.environ.get("LOG_LEVEL", "INFO")
+# Отдельный порт метрик вне sidecar Istio: иначе опросы Prometheus попадают в istio_requests_total и в success rate Flagger
+METRICS_PORT = int(os.environ.get("METRICS_PORT", "0"))

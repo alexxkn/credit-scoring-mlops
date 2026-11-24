@@ -10,6 +10,6 @@ spec:
         operator: In
         values: [credit-scoring-api, credit-scoring-api-primary, credit-scoring-api-b]
   podMetricsEndpoints:
-    - port: http
+    - port: metrics
       path: /metrics
       interval: 15s

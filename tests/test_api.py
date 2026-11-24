@@ -1,4 +1,6 @@
 import json
+import socket
+import urllib.request
 
 import fakeredis
 import fastapi.testclient
@@ -91,6 +93,20 @@ def test_metrics_exposed(client, client_row):
     text = client.get("/metrics").text
     assert "credit_predictions_total" in text
     assert "credit_api_request_duration_seconds_bucket" in text
+
+
+def test_metrics_on_separate_port(onnx_model, monkeypatch, client_row):
+    with socket.socket() as sock:
+        sock.bind(("127.0.0.1", 0))
+        port = sock.getsockname()[1]
+    monkeypatch.setattr(settings, "MODEL_PATH", str(onnx_model / "model.onnx"))
+    monkeypatch.setattr(settings, "MODEL_META_PATH", str(onnx_model / "metrics.json"))
+    monkeypatch.setattr(settings, "REDIS_URL", "")
+    monkeypatch.setattr(settings, "METRICS_PORT", port)
+    with fastapi.testclient.TestClient(app_module.app) as test_client:
+        test_client.post("/predict", json=client_row)
+        text = urllib.request.urlopen(f"http://127.0.0.1:{port}/metrics").read().decode()
+    assert "credit_predictions_total" in text
 
 
 def test_cache_and_prediction_stream(redis_client, client_row):

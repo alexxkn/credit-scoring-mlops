@@ -4,6 +4,7 @@ metadata:
   name: credit-scoring-config
 data:
   LOG_LEVEL: INFO
+  METRICS_PORT: "9090"
   ORT_THREADS: "1"
   REDIS_URL: redis://redis:6379/0
   CACHE_TTL_SECONDS: "3600"

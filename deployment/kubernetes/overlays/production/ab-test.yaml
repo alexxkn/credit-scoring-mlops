@@ -17,6 +17,8 @@ spec:
       labels:
         app: credit-scoring-api-b
         version: b
+      annotations:
+        traffic.sidecar.istio.io/excludeInboundPorts: "9090"
     spec:
       automountServiceAccountToken: false
       securityContext:
@@ -30,6 +32,8 @@ spec:
           ports:
             - name: http
               containerPort: 8000
+            - name: metrics
+              containerPort: 9090
           envFrom:
             - configMapRef:
                 name: credit-scoring-config

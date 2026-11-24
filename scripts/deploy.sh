@@ -12,6 +12,7 @@ cd "$(dirname "$0")/.."
 kubectl -n "${NAMESPACE}" create secret generic credit-scoring-secrets --dry-run=client -o yaml \
   --from-literal=AWS_ACCESS_KEY_ID="${APP_S3_ACCESS_KEY:?}" --from-literal=AWS_SECRET_ACCESS_KEY="${APP_S3_SECRET_KEY:?}" | kubectl apply -f -
 
-sed -i "s/newTag: .*/newTag: ${TAG}/; s/INGRESS_HOST/${INGRESS_HOST:?}/g" "${OVERLAY}"/*.yaml
+# Тег в кавычках: короткий sha из одних цифр иначе становится числом в YAML, и kustomize его не принимает
+sed -i "s/newTag: .*/newTag: \"${TAG}\"/; s/INGRESS_HOST/${INGRESS_HOST:?}/g" "${OVERLAY}"/*.yaml
 kubectl apply -k "${OVERLAY}"
 ./scripts/wait_canary.sh "${NAMESPACE}"

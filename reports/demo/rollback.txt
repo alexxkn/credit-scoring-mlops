@@ -1,0 +1,29 @@
+# canary-release с model_version=nn-broken (копия nn-v1 с threshold 0.0: всем клиентам предсказывает дефолт)
+# run https://github.com/alexxkn/credit-scoring-mlops/actions/runs/45128095383
+
+$ kubectl -n credit-scoring-prod get canary credit-scoring-api
+NAME                 STATUS   WEIGHT   LASTTRANSITIONTIME
+credit-scoring-api   Failed   0        2026-11-23T08:22:54Z
+
+$ kubectl -n credit-scoring-prod get events --field-selector involvedObject.name=credit-scoring-api,involvedObject.kind=Canary
+Events:
+  Type     Reason  Age                   From     Message
+  ----     ------  ----                  ----     -------
+  Normal   Synced  4m53s (x3 over 119m)  flagger  New revision detected! Scaling up credit-scoring-api.credit-scoring-prod
+  Normal   Synced  3m53s (x3 over 118m)  flagger  Starting canary analysis for credit-scoring-api.credit-scoring-prod
+  Normal   Synced  3m53s (x3 over 118m)  flagger  Pre-rollout check acceptance-test passed
+  Normal   Synced  3m53s (x3 over 118m)  flagger  Advance credit-scoring-api.credit-scoring-prod canary weight 10
+  Warning  Synced  2m53s (x3 over 117m)  flagger  Halt advancement no values found for custom metric: default-rate: no values found
+  Warning  Synced  113s                  flagger  Halt credit-scoring-api.credit-scoring-prod advancement default-rate 1.00 > 0.6
+  Normal   Synced  53s (x18 over 118m)   flagger  Rollback hook manual-rollback not signaling a rollback
+  Warning  Synced  53s                   flagger  Rolling back credit-scoring-api.credit-scoring-prod failed checks threshold reached 2
+  Warning  Synced  53s                   flagger  Canary failed! Scaling down credit-scoring-api.credit-scoring-prod
+
+# MODEL_URI у primary после отката
+MODEL_URI=s3://mifirobo-prod-models/v20261123064833
+MODEL_VERSION=v20261123064833
+
+# итог workflow
+completed success
+# Workflow завершился успехом раньше, чем Flagger заметил новую ревизию: wait_canary.sh через 20 секунд прочитал статус Succeeded прошлой выкатки.
+# После этого wait_canary.sh и задача wait_for_canary в DAG принимают вердикт, только если статус сменился после начала ожидания.

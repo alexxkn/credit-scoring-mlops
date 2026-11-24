@@ -1,0 +1,15 @@
+TIME                   REASON   MESSAGE
+2026-11-23T05:04:54Z   Synced   credit-scoring-api-primary.credit-scoring-prod not ready: waiting for rollout to finish: observed deployment generation less than desired generation
+2026-11-23T05:05:54Z   Synced   all the metrics providers are available!
+2026-11-23T05:05:54Z   Synced   Initialization done! credit-scoring-api.credit-scoring-prod
+2026-11-23T06:23:54Z   Synced   New revision detected! Scaling up credit-scoring-api.credit-scoring-prod
+2026-11-23T06:24:54Z   Synced   Pre-rollout check acceptance-test passed
+2026-11-23T06:24:54Z   Synced   Starting canary analysis for credit-scoring-api.credit-scoring-prod
+2026-11-23T06:24:54Z   Synced   Advance credit-scoring-api.credit-scoring-prod canary weight 10
+2026-11-23T06:25:54Z   Synced   Halt advancement no values found for custom metric: default-rate: no values found
+2026-11-23T06:26:54Z   Synced   Advance credit-scoring-api.credit-scoring-prod canary weight 20
+2026-11-23T06:27:54Z   Synced   Advance credit-scoring-api.credit-scoring-prod canary weight 30
+2026-11-23T06:28:54Z   Synced   Advance credit-scoring-api.credit-scoring-prod canary weight 40
+2026-11-23T06:29:54Z   Synced   Advance credit-scoring-api.credit-scoring-prod canary weight 50
+2026-11-23T06:30:54Z   Synced   Rollback hook manual-rollback not signaling a rollback
+2026-11-23T06:32:54Z   Synced   (combined from similar events): Promotion completed! Scaling down credit-scoring-api.credit-scoring-prod

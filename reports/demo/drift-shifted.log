@@ -1,0 +1,54 @@
+[0;93m2026-11-23 05:12:14.652830318 [W:onnxruntime:Default, telemetry_1ds.cc:613 operator()] Failed to persist telemetry device ID; using an in-memory identifier[m
+{
+  "window": 5000,
+  "data_drift_share": 0.13043478260869565,
+  "drifted_features": [
+    "LIMIT_BAL",
+    "PAY_0",
+    "BILL_AMT1"
+  ],
+  "feature_scores": {
+    "LIMIT_BAL": 0.5039876782190874,
+    "SEX": 0.004187734151960979,
+    "EDUCATION": 0.010343012636881557,
+    "MARRIAGE": 0.0035910513371869685,
+    "AGE": 0.03483184672103159,
+    "PAY_0": 0.38849157793521816,
+    "PAY_2": 0.019047230221817615,
+    "PAY_3": 0.015491683075654081,
+    "PAY_4": 0.019574568826679534,
+    "PAY_5": 0.016270118311728088,
+    "PAY_6": 0.018200681194511504,
+    "BILL_AMT1": 0.23790130398103673,
+    "BILL_AMT2": 0.031997296103172645,
+    "BILL_AMT3": 0.030633895820164615,
+    "BILL_AMT4": 0.031145472989419706,
+    "BILL_AMT5": 0.035629605108418484,
+    "BILL_AMT6": 0.03832680010363387,
+    "PAY_AMT1": 0.02271272510009298,
+    "PAY_AMT2": 0.04094520858639862,
+    "PAY_AMT3": 0.023134101881757227,
+    "PAY_AMT4": 0.021485525643616783,
+    "PAY_AMT5": 0.012819526818091896,
+    "PAY_AMT6": 0.02127474209546109
+  },
+  "prediction_drift_score": 0.6796136177873772,
+  "prediction_drift_detected": true,
+  "reference_roc_auc": 0.7745348343858666,
+  "current_performance": {
+    "rows": 5000,
+    "roc_auc": 0.5570455888707518,
+    "default_rate": 0.3036
+  },
+  "performance_by_version": {
+    "nn-v1": {
+      "rows": 5000,
+      "roc_auc": 0.5570455888707518,
+      "default_rate": 0.3036
+    }
+  },
+  "data_drift_detected": true,
+  "performance_decay": 0.21748924551511473,
+  "concept_drift_detected": true,
+  "retrain_recommended": true
+}

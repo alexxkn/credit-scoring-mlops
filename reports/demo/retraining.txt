@@ -1,0 +1,39 @@
+Запуск DAG credit_scoring_retraining manual__2026-11-23T06:46:14 (conf reason=drift) после сдвинутого трафика
+
+logical_date state
+retrain_model success
+candidate_is_better success
+deploy_canary success
+check_drift success
+wait_for_canary success
+
+Результат retrain_model (xcom):
+{
+  "model_version": "v20261123064833",
+  "train_rows": 28900,
+  "new_labeled_rows": 7000,
+  "candidate": {"roc_auc": 0.7639, "f1": 0.5251},
+  "production": {"model_version": "nn-v1", "roc_auc": 0.7301, "f1": 0.4733},
+  "onnx_validation": {"rows": 8100, "passed": true, "max_abs_diff": 1.19e-07, "class_mismatches": 0},
+  "promote": true
+}
+
+wait_for_canary: Progressing 10 → 20 → 30 → 40 → 50, Promoting, Finalising, Succeeded
+
+Модель в primary после продвижения:
+[{"name":"MODEL_URI","value":"s3://mifirobo-prod-models/v20261123064833"},{"name":"MODEL_VERSION","value":"v20261123064833"}]
+production.json:
+{"version": "v20261123064833", "promoted_at": "2026-11-23T06:59:01.829677+00:00"}
+
+События Flagger:
+TIME                   MESSAGE
+2026-11-23T06:49:54Z   New revision detected! Scaling up credit-scoring-api.credit-scoring-prod
+2026-11-23T06:50:54Z   Starting canary analysis for credit-scoring-api.credit-scoring-prod
+2026-11-23T06:50:54Z   Pre-rollout check acceptance-test passed
+2026-11-23T06:50:54Z   Advance credit-scoring-api.credit-scoring-prod canary weight 10
+2026-11-23T06:51:54Z   Halt advancement no values found for custom metric: default-rate: no values found
+2026-11-23T06:52:54Z   Advance credit-scoring-api.credit-scoring-prod canary weight 20
+2026-11-23T06:53:54Z   Advance credit-scoring-api.credit-scoring-prod canary weight 30
+2026-11-23T06:54:54Z   Advance credit-scoring-api.credit-scoring-prod canary weight 40
+2026-11-23T06:55:54Z   Rollback hook manual-rollback not signaling a rollback
+2026-11-23T06:58:54Z   (combined from similar events): Promotion completed! Scaling down credit-scoring-api.credit-scoring-prod

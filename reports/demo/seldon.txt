@@ -1,0 +1,12 @@
+$ kubectl -n credit-scoring-prod get sdep,pods
+NAME             AGE
+credit-scoring   2m8s
+NAME                                                     READY   STATUS      RESTARTS   AGE
+credit-scoring-challenger-0-classifier-bccb4b65c-qkmtr   3/3     Running     0          2m7s
+credit-scoring-main-0-classifier-6f578879bf-7dqfk        3/3     Running     0          2m7s
+credit-scoring-shadow-0-classifier-69868975d9-p7nh8      3/3     Running     0          2m7s
+
+200 запросов POST /seldon/credit-scoring-prod/credit-scoring/api/v1.0/predictions через istio-ingressgateway, ответы по model_version:
+{'nn-v1': 183, 'nn-v1-int8': 17}
+
+Запросы, которые получил предиктор shadow (istio_requests_total, reporter=destination): 200

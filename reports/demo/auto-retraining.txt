@@ -1,0 +1,27 @@
+# Автономный запуск: DAG credit_scoring_drift_trigger (раз в час) прочитал отчёт о дрифте и запустил переобучение, человек не участвовал
+
+$ airflow tasks states-for-dag-run credit_scoring_drift_trigger scheduled__2026-11-24T05:15:00+00:00
+dag_id                        logical_date               task_id                    state    start_date                        end_date
+credit_scoring_drift_trigger  2026-11-24T05:15:00+00:00  drift_requires_retraining  success  2026-11-24T05:15:10.839193+00:00  2026-11-24T05:15:12.832564+00:00
+credit_scoring_drift_trigger  2026-11-24T05:15:00+00:00  trigger_retraining         success  2026-11-24T05:15:23.071703+00:00  2026-11-24T05:15:24.997098+00:00
+
+$ airflow tasks states-for-dag-run credit_scoring_retraining manual__2026-11-24T05:15:24.595397+00:00
+dag_id                     logical_date                      task_id              state    start_date                        end_date
+credit_scoring_retraining  2026-11-24T05:15:24.595397+00:00  check_drift          success  2026-11-24T05:15:35.175342+00:00  2026-11-24T05:15:41.486013+00:00
+credit_scoring_retraining  2026-11-24T05:15:24.595397+00:00  wait_for_canary      success  2026-11-24T05:17:40.756023+00:00  2026-11-24T05:27:17.610708+00:00
+credit_scoring_retraining  2026-11-24T05:15:24.595397+00:00  retrain_model        success  2026-11-24T05:15:52.837989+00:00  2026-11-24T05:16:53.906896+00:00
+credit_scoring_retraining  2026-11-24T05:15:24.595397+00:00  candidate_is_better  success  2026-11-24T05:17:05.267908+00:00  2026-11-24T05:17:12.034006+00:00
+credit_scoring_retraining  2026-11-24T05:15:24.595397+00:00  deploy_canary        success  2026-11-24T05:17:23.224904+00:00  2026-11-24T05:17:29.432571+00:00
+
+# candidate_is_better (лог из S3)
+{"promote": true, "candidate": {"f1": 0.5342, "roc_auc": 0.7695}, "production": {"f1": 0.5251, "roc_auc": 0.7639, "model_version": "v20261123064833"},
+ "train_rows": 28900, "model_version": "v20261124051643", "new_labeled_rows": 7000,
+ "onnx_validation": {"rows": 8100, "passed": true, "max_abs_diff": 1.19e-07, "class_mismatches": 0}}
+
+# wait_for_canary: вес canary 10 -> 20 -> 30 -> 40 -> 50, Promoting, Finalising, Succeeded
+
+# production.json
+{"version": "v20261124051643", "promoted_at": "2026-11-24T05:27:17.260039+00:00"}
+
+# Прирост ROC-AUC 0.006 получен на тех же 7000 размеченных строках, что и у v20261123064833, — это шум.
+# После этого порог продвижения MIN_GAIN поднят до 0.01, а синтетический трафик проверок Flagger исключён из журнала дрифта.

@@ -1,0 +1,3 @@
+POST http://ab.168.113.137.131.nip.io/predict, 200 запросов без заголовка: {'nn-v1-int8': 90, 'nn-v1': 110}
+x-model-variant: a -> nn-v1
+x-model-variant: b -> nn-v1-int8

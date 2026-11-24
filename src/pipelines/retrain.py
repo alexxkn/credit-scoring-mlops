@@ -64,7 +64,8 @@ def main():
     parser.add_argument("--stream", default=os.environ.get("PREDICTION_STREAM", "predictions"))
     parser.add_argument("--window", type=int, default=50000)
     parser.add_argument("--models-bucket", default=os.environ.get("MODELS_BUCKET", ""))
-    parser.add_argument("--min-gain", type=float, default=float(os.environ.get("MIN_GAIN", "0.0")), help="на сколько ROC-AUC кандидат должен быть лучше")
+    # Разброс ROC-AUC на 8100 строках проверки около 0.006: меньший прирост — шум, и модель менялась бы при каждом переобучении
+    parser.add_argument("--min-gain", type=float, default=float(os.environ.get("MIN_GAIN", "0.01")), help="на сколько ROC-AUC кандидат должен быть лучше")
     parser.add_argument("--out-dir", type=pathlib.Path, default=pathlib.Path("models/candidate"))
     args = parser.parse_args()
 

@@ -111,7 +111,7 @@ async def observe(request, call_next):
 
 def predict_records(app_state, records, journal=True):
     model, log = app_state.model, app_state.log
-    probabilities = [log.get(model.version, record) for record in records]
+    probabilities = log.get_many(model.version, records)
     CACHE.labels("hit").inc(sum(p is not None for p in probabilities))
     missing = [i for i, p in enumerate(probabilities) if p is None]
     if missing:
@@ -120,16 +120,15 @@ def predict_records(app_state, records, journal=True):
             computed = model.predict_proba([records[i] for i in missing])
         for i, probability in zip(missing, computed):
             probabilities[i] = float(probability)
-            log.put(model.version, records[i], probabilities[i])
-    results = []
+    results, entries = [], []
     for record, probability in zip(records, probabilities):
         request_id = str(uuid.uuid4())
         label = int(probability >= model.threshold)
         PREDICTIONS.labels(model.version, str(label)).inc()
         PROBABILITY.labels(model.version).observe(probability)
-        if journal:
-            log.append(request_id, model.version, record, probability)
+        entries.append((request_id, record, probability))
         results.append(Prediction(request_id=request_id, default_prediction=label, default_probability=probability, model_version=model.version))
+    log.write(model.version, [(records[i], probabilities[i]) for i in missing], entries if journal else [])
     return results
 
 

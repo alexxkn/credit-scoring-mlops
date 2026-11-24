@@ -103,6 +103,16 @@ def test_cache_and_prediction_stream(redis_client, client_row):
     assert prometheus_client.REGISTRY.get_sample_value("credit_cache_requests_total", {"result": "hit"}) == hits_before + 1
 
 
+def test_batch_cache_and_stream(redis_client, client_row):
+    rows = [client_row | {"AGE": age} for age in (25, 35, 45)]
+    hits_before = prometheus_client.REGISTRY.get_sample_value("credit_cache_requests_total", {"result": "hit"}) or 0
+    first = redis_client.post("/predict/batch", json=rows).json()
+    second = redis_client.post("/predict/batch", json=rows).json()
+    assert [p["default_probability"] for p in first] == [p["default_probability"] for p in second]
+    assert len(redis_client.app.state.log.client.xrange(settings.PREDICTION_STREAM)) == 6
+    assert prometheus_client.REGISTRY.get_sample_value("credit_cache_requests_total", {"result": "hit"}) == hits_before + 3
+
+
 def test_synthetic_traffic_not_in_stream(redis_client, client_row):
     response = redis_client.post("/predict", json=client_row, headers={"X-Synthetic": "flagger"})
     assert response.status_code == 200

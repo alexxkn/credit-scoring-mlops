@@ -17,6 +17,8 @@ spec:
         app: redis
       annotations:
         sidecar.istio.io/inject: "false"
+        # Автомасштабирование не удаляет узел с Redis: переезд пода с диском занимает около минуты, всё это время кеш и журнал выключены
+        cluster-autoscaler.kubernetes.io/safe-to-evict: "false"
     spec:
       automountServiceAccountToken: false
       nodeSelector:

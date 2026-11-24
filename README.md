@@ -41,11 +41,13 @@ credit-scoring-mlops/
 - Оптимизация (src/models/optimize.py): dynamic quantization int8 уменьшает модель в 2 раза и ускоряет батч 1024 на 22% при потере ROC-AUC 0.0014. Pruning 50% весов качество не меняет, но и не ускоряет: ONNX Runtime не пропускает нули в плотных матрицах.
 - Инференс: ONNX Runtime в 5 раз быстрее PyTorch на одиночном запросе. GPU (RTX 3080 Ti) для этой модели медленнее CPU: копирование данных на карту дороже вычислений.
 - Нагрузочный тест API (Locust, 200 пользователей): 1 CPU — 754 запроса/с, 2 CPU — 1362, 4 CPU — 2213. Вывод для продакшена: CPU-узлы, под с 1 vCPU, масштабирование подов через HPA.
+- Нагрузочный тест в облаке (400 пользователей, 20 минут): 1860 запросов/с в среднем и около 2200 к концу теста, 0 ошибок из 2.2 млн запросов, p95 430 мс. HPA поднял поды с 2 до 8, автомасштабирование добавило узлы.
 
 ```bash
 dvc repro                                # данные, модели курса 17, нейросеть, ONNX, оптимизация
 python -m src.models.benchmark           # reports/benchmark.md
 ./loadtest/run_local.sh 2                # нагрузочный тест образа backend с лимитом 2 CPU
+HOST_HEADER=api.<LB>.nip.io ./loadtest/run_cluster.sh   # нагрузочный тест production в кластере
 ```
 
 ## Этап 2. Инфраструктура как код
@@ -93,7 +95,7 @@ GitHub Actions, цепочка build → test → deploy → monitor:
 
 ## Этап 5. Мониторинг
 
-- Prometheus собирает метрики API (запросы, задержка, время инференса, прогнозы по версиям модели, кеш), Envoy, узлов и kube-state-metrics.
+- Prometheus собирает метрики API (запросы, задержка, время инференса, прогнозы по версиям модели, кеш), Envoy, узлов и kube-state-metrics. Метрики API отдаются на порту 9090 мимо sidecar: иначе опросы Prometheus попадают в istio_requests_total и искажают success rate Flagger.
 - Loki и Alloy собирают JSON-логи подов.
 - Дашборды Grafana: Credit Scoring API, дрифт и качество модели, логи.
 - Алерты: 8 правил Prometheus (недоступность API, 5xx, задержка, рестарты, сдвиг доли дефолтов, data drift, concept drift, остановка мониторинга дрифта) и 2 правила Loki (ошибки в логах, недоступность Redis). Уведомления приходят в Telegram, в каждом есть ссылка на раздел runbook.
@@ -121,7 +123,8 @@ GitHub Actions, цепочка build → test → deploy → monitor:
   4. иначе меняет MODEL_URI у Deployment, Flagger ведёт canary, после продвижения DAG обновляет production.json.
 - Логи задач Airflow хранятся в S3 (mifirobo-prod-reports/airflow-logs): под воркера KubernetesExecutor удаляется после задачи.
 - DAG credit_scoring_drift_trigger раз в час читает последний отчёт о дрифте и при дрифте запускает переобучение, не чаще раза в сутки.
-- Масштабирование: HPA подов API, автомасштабирование группы узлов app, кеш предсказаний в Redis (TTL 1 час).
+- Масштабирование: HPA подов API, автомасштабирование группы узлов app, кеш предсказаний в Redis (TTL 1 час). Узел с Redis автомасштабирование не удаляет (safe-to-evict: false).
+- Нагрузочный тест в облаке: первый прогон дал 233 запроса/с и 13% ошибок, потому что кеш и журнал обращались к Redis на каждого клиента. После перехода на MGET и pipeline итоговый прогон держит 1860 запросов/с без ошибок. Таблица и разбор: [reports/performance.md](reports/performance.md#нагрузочный-тест-в-облаке).
 - Геореплика сведена к распределению подов по узлам (topologySpreadConstraints) и PDB. Standard-кластер VK Cloud ставит все узлы в одну зону, для нескольких зон нужен regional-кластер.
 
 ## Развёртывание с нуля
@@ -147,6 +150,24 @@ AIRFLOW_ADMIN_PASSWORD=... ./deployment/mlops/install.sh   # MLflow, Airflow
 - Откат (rollback.txt): canary-release с моделью nn-broken (порог 0, всем клиентам предсказывает дефолт). На шаге 10% метрика default-rate показала 1.00 при пороге 0.6, после двух неудачных проверок Flagger вернул весь трафик на прежнюю модель. Первая проверка выдаёт "no values found": метрики canary появляются в Prometheus не сразу, это нормально.
 - Seldon (seldon.txt): из 200 запросов 183 обработал main и 17 — challenger, shadow получил все 200.
 
+Скриншоты (reports/screenshots):
+
+- Grafana, API под итоговым нагрузочным тестом: рост до 2200 запросов/с, 0% 5xx, HPA до 8 подов, задержка падает после добавления узла.
+
+  ![Grafana API](reports/screenshots/grafana-api.png)
+- Grafana, дрифт и качество модели за 30 часов: сдвинутый трафик, затем обычный.
+
+  ![Grafana дрифт](reports/screenshots/grafana-drift.png)
+- Airflow: оба DAG и автономный запуск переобучения.
+
+  ![Airflow DAG](reports/screenshots/airflow-dags.png)
+  ![Airflow запуск](reports/screenshots/airflow-run.png)
+- MLflow: запуски переобучения, метрики кандидата и production-модели, три версии CreditScoringNN в реестре.
+
+  ![MLflow запуски](reports/screenshots/mlflow-runs.png)
+  ![MLflow запуск](reports/screenshots/mlflow-run.png)
+  ![MLflow реестр](reports/screenshots/mlflow-registry.png)
+
 ## Решения под VK Cloud
 
 - Docker Hub и quay из VK Cloud отдают образы медленно, CRI-O качает их по очереди, и зависшее скачивание блокирует всю очередь. Поэтому сторонние образы копируются в GHCR.
@@ -160,3 +181,4 @@ AIRFLOW_ADMIN_PASSWORD=... ./deployment/mlops/install.sh   # MLflow, Airflow
 - GPU-группа узлов описана, но не создавалась. GPU-бенчмарк снят на локальной RTX 3080 Ti, и GPU этой модели не нужен.
 - Staging — namespace в production-кластере, а не отдельный кластер.
 - Кластер standard, в одной зоне доступности.
+- API пишет строку лога на каждый запрос. В итоговом нагрузочном тесте, примерно при 2000 запросов/с, логи API перестали поступать в Loki на середине теста. Отказов 429 от Loki в логах Alloy нет, причина не выяснена; Alloy читает логи через API Kubernetes, и для такой нагрузки журнал запросов стоит семплировать.

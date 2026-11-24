@@ -1,0 +1,45 @@
+configmap/locustfile created
+job.batch/cluster-loadtest created
+pod/cluster-loadtest-mf2x8 condition met
+[notice] A new release of pip is available: 25.0.1 -> 26.3
+[notice] To update, run: pip install --upgrade pip
+[2026-11-24 07:51:32,397] cluster-loadtest-mf2x8/INFO/locust.main: Starting Locust 2.47.0
+[2026-11-24 07:51:32,464] cluster-loadtest-mf2x8/INFO/locust.runners: cluster-loadtest-mf2x8_f04313c93edd4b8daf03d8279605fbb5 (index 0) reported as ready. 1 workers connected.
+[2026-11-24 07:51:32,464] cluster-loadtest-mf2x8/INFO/locust.runners: cluster-loadtest-mf2x8_d4caf5c7bd4f47b39811d12b0ea1fb94 (index 1) reported as ready. 2 workers connected.
+[2026-11-24 07:51:32,464] cluster-loadtest-mf2x8/INFO/locust.runners: cluster-loadtest-mf2x8_af554cdc049f4aff89c01947f733a586 (index 2) reported as ready. 3 workers connected.
+[2026-11-24 07:51:33,459] cluster-loadtest-mf2x8/INFO/locust.main: Run time limit set to 600 seconds
+[2026-11-24 07:51:33,459] cluster-loadtest-mf2x8/INFO/locust.runners: Sending spawn jobs of 400 users at 20.00 spawn rate to 3 ready workers
+[2026-11-24 07:51:52,972] cluster-loadtest-mf2x8/INFO/locust.runners: All users spawned: {"ApiUser": 400} (400 total users)
+[2026-11-24 08:01:33,459] cluster-loadtest-mf2x8/INFO/locust.main: --run-time limit reached, shutting down
+[2026-11-24 08:01:33,460] cluster-loadtest-mf2x8/INFO/locust.runners: Got quit message from master, shutting down...
+[2026-11-24 08:01:33,460] cluster-loadtest-mf2x8/INFO/locust.runners: Got quit message from master, shutting down...
+[2026-11-24 08:01:33,462] cluster-loadtest-mf2x8/INFO/locust.runners: Got quit message from master, shutting down...
+[2026-11-24 08:01:33,532] cluster-loadtest-mf2x8/INFO/locust.main: Shutting down (exit code 0)
+[2026-11-24 08:01:33,534] cluster-loadtest-mf2x8/INFO/locust.runners: Worker 'cluster-loadtest-mf2x8_d4caf5c7bd4f47b39811d12b0ea1fb94' (index 1) quit. 0 workers ready.
+[2026-11-24 08:01:33,540] cluster-loadtest-mf2x8/INFO/locust.main: Shutting down (exit code 0)
+[2026-11-24 08:01:33,543] cluster-loadtest-mf2x8/INFO/locust.runners: Worker 'cluster-loadtest-mf2x8_f04313c93edd4b8daf03d8279605fbb5' (index 0) quit. 0 workers ready.
+[2026-11-24 08:01:33,557] cluster-loadtest-mf2x8/INFO/locust.main: Shutting down (exit code 0)
+[2026-11-24 08:01:33,559] cluster-loadtest-mf2x8/INFO/locust.runners: Worker 'cluster-loadtest-mf2x8_af554cdc049f4aff89c01947f733a586' (index 2) quit. 0 workers ready.
+[2026-11-24 08:01:33,561] cluster-loadtest-mf2x8/INFO/locust.runners: The last worker quit, stopping test.
+[2026-11-24 08:01:34,461] cluster-loadtest-mf2x8/INFO/locust.main: Shutting down (exit code 1)
+Type     Name                                                                          # reqs      # fails |    Avg     Min     Max    Med |   req/s  failures/s
+--------|----------------------------------------------------------------------------|-------|-------------|-------|-------|-------|-------|--------|-----------
+POST     /predict                                                                      126019  4461(3.54%) |   1211       0    6399    880 |  210.00        7.43
+POST     /predict/batch                                                                 13955 13753(98.55%) |   5931       1    6376   6100 |   23.26       22.92
+--------|----------------------------------------------------------------------------|-------|-------------|-------|-------|-------|-------|--------|-----------
+         Aggregated                                                                    139974 18214(13.01%) |   1682       0    6399    960 |  233.26       30.35
+Response time percentiles (approximated)
+Type     Name                                                                                  50%    66%    75%    80%    90%    95%    98%    99%  99.9% 99.99%   100% # reqs
+--------|--------------------------------------------------------------------------------|--------|------|------|------|------|------|------|------|------|------|------|------
+POST     /predict                                                                              880   1100   1400   1500   2000   4000   6100   6100   6200   6300   6400 126019
+POST     /predict/batch                                                                       6100   6100   6100   6100   6100   6100   6200   6200   6300   6300   6400  13955
+--------|--------------------------------------------------------------------------------|--------|------|------|------|------|------|------|------|------|------|------|------
+         Aggregated                                                                            960   1300   1700   1900   6000   6100   6100   6100   6200   6300   6400 139974
+Error report
+# occurrences      Error                                                                                               
+------------------|---------------------------------------------------------------------------------------------------------------------------------------------
+13564              POST /predict/batch: LocustBadStatusCode(code=504)                                                  
+3484               POST /predict: LocustBadStatusCode(code=504)                                                        
+977                POST /predict: LocustBadStatusCode(code=503)                                                        
+189                POST /predict/batch: LocustBadStatusCode(code=503)                                                  
+------------------|---------------------------------------------------------------------------------------------------------------------------------------------

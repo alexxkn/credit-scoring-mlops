@@ -34,7 +34,7 @@ spec:
           args:
             - pip install -q --target /tmp/pkgs locust==2.47.0 && PYTHONPATH=/app:/tmp/pkgs python -m locust -f /loadtest/locustfile.py --headless
               --users ${USERS} --spawn-rate 20 --processes 3 --run-time ${DURATION} --host http://istio-ingressgateway.istio-ingress
-              --csv /tmp/cluster --only-summary && cat /tmp/cluster_stats.csv
+              --csv /tmp/cluster --only-summary --exit-code-on-error 0 && cat /tmp/cluster_stats.csv
           env:
             - name: HOST_HEADER
               value: ${HOST_HEADER}

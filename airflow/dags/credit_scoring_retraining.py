@@ -89,11 +89,13 @@ with sdk.DAG(
         kubernetes.config.load_incluster_config()
         api = kubernetes.client.CustomObjectsApi()
         deadline = time.monotonic() + CANARY_TIMEOUT_SECONDS
-        time.sleep(60)
+        # Вердикт засчитывается, только если статус сменился после смены модели, иначе это результат прошлой выкатки
+        started = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
         while time.monotonic() < deadline:
             canary = api.get_namespaced_custom_object("flagger.app", "v1beta1", sdk.Variable.get("prod_namespace"), "canaries", DEPLOYMENT)
-            phase = canary.get("status", {}).get("phase")
-            print(f"canary phase: {phase}, weight: {canary.get('status', {}).get('canaryWeight')}")
+            status = canary.get("status", {})
+            phase = status.get("phase") if status.get("lastTransitionTime", "") >= started else "waiting"
+            print(f"canary phase: {phase}, weight: {status.get('canaryWeight')}")
             if phase == "Succeeded":
                 body = json.dumps({"version": version, "promoted_at": datetime.datetime.now(datetime.timezone.utc).isoformat()})
                 s3_client().put_object(Bucket=sdk.Variable.get("models_bucket"), Key="production.json", Body=body.encode())
